@@ -10,6 +10,9 @@ import { makeRng } from './rng.js';
 // Device processing times in ms (guesses until measured on hardware).
 export const TIMING = { mem: 3, cmd: 1, fwStart: 400, fwPacket: 6, fwEnd: 1200 };
 
+// Boot time after a reset, before the X1 answers again (a guess).
+export const BOOT_MS = 600;
+
 export const Cmd = { EnterCali: 0x30, QuitCali: 0x31, LaserOn: 0x36, LaserOff: 0x37, LaserTrig: 0x38 };
 
 export const defaultFaults = () => ({
@@ -30,7 +33,7 @@ export const defaultFaults = () => ({
   fwRejectEnd: false,
 });
 
-export const defaultSettings = () => ({ streamLive: true, brickOnAbort: true });
+export const defaultSettings = () => ({ streamLive: true, brickOnAbort: true, resetOnSignals: true });
 
 export class X1 {
   constructor({ now = () => Date.now(), rng = null, memory = null, firmware = null, faults = null, settings = null } = {}) {
@@ -44,6 +47,8 @@ export class X1 {
     this.laser = false;
     this.cali = false;
     this.hostOpen = false;
+    this.resetHeld = false;
+    this.bootUntil = 0;
     this.walk = { az: 40, inc: -5, n: 0 };
     this.listeners = new Set();
   }
@@ -66,6 +71,35 @@ export class X1 {
     this._changed();
   }
 
+  // Reset of the processor only: the USB-serial chip stays powered, so the
+  // port stays open. Memory survives; modes clear; a flash in progress is
+  // interrupted.
+  reboot() {
+    this.resetHeld = false;
+    this.laser = false;
+    this.cali = false;
+    this.deframer.reset();
+    this.firmware.abort('reset during flash', this.settings.brickOnAbort);
+    this.bootUntil = this.now() + BOOT_MS;
+    this._emit('log', 'Reset: booting');
+    this._changed();
+  }
+
+  // Reset line held (button down or DTR/RTS low): silent until released.
+  holdReset(held) {
+    if (held === this.resetHeld) return;
+    if (held) {
+      this.resetHeld = true;
+      this.laser = false;
+      this._emit('log', 'Reset held');
+      this._changed();
+    } else {
+      this.reboot();
+    }
+  }
+
+  get booting() { return this.resetHeld || this.now() < this.bootUntil; }
+
   // Bytes from the host, returns [{ bytes, delayMs }] to send back in order.
   receive(bytes) {
     const out = [];
@@ -78,6 +112,7 @@ export class X1 {
 
   _handle(pl) {
     if (pl.length === 0) return null;
+    if (this.booting) { this._emit('log', this.resetHeld ? 'In reset: ignored a frame' : 'Booting: ignored a frame'); return null; }
     if (this.faults.freeze) { this._emit('log', 'Frozen: ignored a frame'); return null; }
     const op = pl[0];
     const fwOp = op === 0x4b || op === 0x4c || op === 0x4d;
@@ -172,7 +207,7 @@ export class X1 {
   // The Measure button or a laser trigger. Returns the live packet to stream,
   // or null. Blank values follow a gentle random walk.
   measure({ splay = false, flag = Flag.none, distance = null, azimuth = null, inclination = null } = {}) {
-    if (this.firmware.state !== 'app') return null;
+    if (this.firmware.state !== 'app' || this.booting) return null;
     const r = this.rng;
     const w = this.walk;
     if (!splay) {
@@ -219,6 +254,8 @@ export class X1 {
       laser: this.laser,
       cali: this.cali,
       hostOpen: this.hostOpen,
+      booting: this.booting,
+      resetHeld: this.resetHeld,
       shots: this.memory.shots.length,
       serial: this.memory.serial(),
       clock: this.memory.clock(),

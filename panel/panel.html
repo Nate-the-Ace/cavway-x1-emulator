@@ -12,7 +12,10 @@
     <h1>Cavway X1</h1>
     <span class="sub">Emulator · serial <span id="serialNo">—</span></span>
   </div>
-  <button id="btnPlug" class="plug" aria-pressed="false">Connect</button>
+  <div class="actions">
+    <button id="btnReset" class="reset" title="Reset the X1's processor. The USB port stays open; shots and calibration are kept.">Reset</button>
+    <button id="btnPlug" class="plug" aria-pressed="false">Connect</button>
+  </div>
 </header>
 <p id="status" class="status">Unplugged</p>
 
@@ -108,6 +111,7 @@
   </div>
   <label class="check"><input data-setting="streamLive" type="checkbox" checked> Stream live shots to the host (guess)</label>
   <label class="check"><input data-setting="brickOnAbort" type="checkbox" checked> Brick on interrupted flash</label>
+  <label class="check"><input data-setting="resetOnSignals" type="checkbox" checked> DTR/RTS low holds the X1 in reset (guess)</label>
   <div class="row"><button id="btnFactory" class="danger">Factory reset</button></div>
 </details>
 

@@ -202,3 +202,34 @@ test('x1 state round-trips through JSON', () => {
   assert.equal(y.state().shots, 2);
   assert.equal(y.state().serial, x.state().serial);
 });
+
+test('reboot: modes clear, memory kept, silent while booting, flash interrupted', () => {
+  let t = 1_700_000_000_000;
+  const x = new X1({ now: () => t });
+  x.measure();
+  x.receive(frame([0x36]));
+  x.receive(frame([0x30]));
+  x.reboot();
+  assert.equal(x.state().laser, false);
+  assert.equal(x.state().cali, false);
+  assert.equal(x.state().shots, 1);
+  assert.equal(x.receive(frame([0x3d, 0x08, 0x80, 4])).length, 0, 'booting');
+  assert.equal(x.measure(), null);
+  t += 700;
+  assert.equal(x.receive(frame([0x3d, 0x08, 0x80, 4])).length, 1);
+  x.receive(frame([0x4b]));
+  x.reboot();
+  assert.equal(x.state().fw.state, 'bootloader');
+});
+
+test('reset held: silent until released, then boots', () => {
+  let t = 0;
+  const x = new X1({ now: () => t });
+  x.holdReset(true);
+  t += 5000;
+  assert.equal(x.receive(frame([0x3d, 0x08, 0x80, 4])).length, 0);
+  x.holdReset(false);
+  assert.equal(x.state().booting, true);
+  t += 700;
+  assert.equal(x.receive(frame([0x3d, 0x08, 0x80, 4])).length, 1);
+});

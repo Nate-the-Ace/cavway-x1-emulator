@@ -133,3 +133,29 @@ test('dropped reply times out, next one works', { skip }, async () => {
   await t.close();
 });
 
+
+test('flasher Reset device: DTR/RTS pulse reboots the X1, port stays open', { skip }, async () => {
+  const { t, dev, x1 } = await rig();
+  if (typeof dev.resetDevice !== 'function') return; // older flasher
+  await dev.command(0x36);
+  await sleep(30);
+  assert.equal(x1.laser, true);
+  const logs = [];
+  x1.on((type, d) => { if (type === 'log') logs.push(d); });
+  await dev.resetDevice();
+  assert.ok(logs.includes('Reset held') && logs.includes('Reset: booting'), logs.join(' | '));
+  assert.equal(x1.laser, false);
+  assert.equal(t.isOpen, true);
+  assert.equal(await dev.readSerial(), x1.memory.serial());
+  await t.close();
+});
+
+test('reset on signals can be switched off', { skip }, async () => {
+  const { t, dev, x1 } = await rig({}, { resetOnSignals: false });
+  if (typeof dev.resetDevice !== 'function') return;
+  await dev.command(0x36);
+  await sleep(30);
+  await dev.resetDevice();
+  assert.equal(x1.laser, true);
+  await t.close();
+});

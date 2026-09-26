@@ -2,6 +2,7 @@
 // channels ({ post, onMessage, onClose, close }); one serial session at a time,
 // as an OS serial port is exclusive.
 import { Wire } from '../device/wire.js';
+import { BOOT_MS } from '../device/x1.js';
 
 export class Host {
   constructor({ x1, now = () => performance.now(), setTimer = (fn, ms) => setTimeout(fn, ms), clearTimer = (h) => clearTimeout(h), onTraffic = () => {}, onChange = () => {}, onLog = () => {} }) {
@@ -51,7 +52,8 @@ export class Host {
             onTraffic: this.onTraffic,
           });
           wire.open(m.options);
-          this.session = { ch, wire, origin: m.origin, options: m.options };
+          // A freshly opened port has DTR and RTS asserted.
+          this.session = { ch, wire, origin: m.origin, options: m.options, signals: { dtr: true, rts: true } };
           const o = m.options;
           this.onLog(`Opened by ${m.origin} at ${o.baudRate} ${o.dataBits}${o.parity[0].toUpperCase()}${o.stopBits}${wire.lineOk ? '' : ' (line mismatch: garbled)'}`);
           ch.post({ t: 'opened' });
@@ -59,12 +61,34 @@ export class Host {
           break;
         }
         case 'tx': if (mine) this.session.wire.hostWrite(Uint8Array.from(m.bytes)); break;
-        case 'signals': if (mine) this.onLog(`Signals ${JSON.stringify(m.signals)}`); break;
+        case 'signals': if (mine) this._signals(m.signals); break;
         case 'close': if (mine) { this._endSession(); this.onLog('Closed by host'); } break;
       }
     });
     ch.onClose(() => { if (this.session?.ch === ch) { this._endSession(); this.onLog('Host went away'); } });
   }
+
+  // DTR or RTS low holds the X1 in reset; both high again boots it (a guess
+  // about the X1's wiring, switchable in the panel).
+  _signals(s) {
+    const sig = this.session.signals;
+    if (s.dataTerminalReady !== undefined) sig.dtr = s.dataTerminalReady;
+    if (s.requestToSend !== undefined) sig.rts = s.requestToSend;
+    this.onLog(`Signals DTR=${sig.dtr ? 1 : 0} RTS=${sig.rts ? 1 : 0}${s.break !== undefined ? ` BREAK=${s.break ? 1 : 0}` : ''}`);
+    if (!this.x1.settings.resetOnSignals) return;
+    const held = !sig.dtr || !sig.rts;
+    if (held === this.x1.resetHeld) return;
+    this.x1.holdReset(held);
+    if (!held) this._afterBoot();
+  }
+
+  // The panel's reset button: press and release.
+  reset() {
+    this.x1.reboot();
+    this._afterBoot();
+  }
+
+  _afterBoot() { this.setTimer(() => this.onChange(), BOOT_MS + 20); }
 
   // Bytes the device sends on its own (a live shot), if a host has the port.
   sendUnsolicited(bytes) {
@@ -81,6 +105,7 @@ export class Host {
     if (!s) return;
     this.session = null;
     s.wire.close();
+    if (this.x1.resetHeld) this.x1.holdReset(false);
     this.onChange();
   }
 

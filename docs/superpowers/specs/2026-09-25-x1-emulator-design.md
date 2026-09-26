@@ -229,3 +229,14 @@ number, download of 100 shots, a 41-packet firmware flash ("upgrade success"),
 and unplug-at-packet-10 ("Upgrade Fail at packet 10 of 41", flasher
 disconnected, emulator bricked, then recovered). Not yet verified: the
 unpacked extension in Chrome itself.
+
+### Reset (added 2026-09-25)
+
+Panel **Reset** and host DTR/RTS both reset the processor only (the CH343 stays
+powered, the port stays open): `holdReset(true)` while a line is low (silent),
+`reboot()` on release: laser and cali mode clear, memory kept, a flash in
+progress is interrupted, then 600 ms of boot silence (`BOOT_MS`, a guess). A
+fresh session starts with DTR and RTS asserted. Setting `resetOnSignals`
+(default on) turns the DTR/RTS path off. The flasher gained matching
+**Reset device** (DTR/RTS pulse) and **Clear session** buttons; both verified
+in the harness through the flasher UI.

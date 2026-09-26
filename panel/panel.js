@@ -84,16 +84,16 @@ function render() {
   btn.textContent = plugged ? 'Disconnect' : 'Connect';
   btn.setAttribute('aria-pressed', String(plugged));
   const sess = host.session;
-  $('status').textContent = !plugged ? 'Unplugged'
+  $('status').textContent = s.resetHeld ? 'Held in reset' : s.booting ? 'Booting…' : !plugged ? 'Unplugged'
     : sess ? `Open by ${new URL(sess.origin).host} at ${sess.options.baudRate} baud${sess.wire.lineOk ? '' : ' — line settings wrong, bytes garbled'}`
       : 'Plugged in, port closed';
   $('serialNo').textContent = String(s.serial).padStart(4, '0');
-  led('power', plugged);
+  led('power', plugged && !s.booting);
   led('laser', s.laser);
   led('cali', s.cali);
   led('brick', s.fw.state === 'bootloader');
   $('shotCount').textContent = s.shots;
-  $('btnMeasure').disabled = s.fw.state !== 'app';
+  $('btnMeasure').disabled = s.fw.state !== 'app' || s.booting;
   const st = $('fwState');
   st.textContent = { app: 'Running', receiving: 'Receiving firmware', bootloader: 'Bootloader (bricked)' }[s.fw.state];
   st.classList.toggle('bricked', s.fw.state === 'bootloader');
@@ -117,6 +117,7 @@ function render() {
 
 // ---- controls --------------------------------------------------------------------
 $('btnPlug').addEventListener('click', () => host.setPlugged(!host.plugged));
+$('btnReset').addEventListener('click', () => host.reset());
 
 let kind = 'leg';
 for (const b of document.querySelectorAll('[data-kind]')) {

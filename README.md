@@ -7,7 +7,7 @@ flasher's pages with a faithful fake, so the flasher's code runs **unmodified**
 and cannot tell the emulated X1 from a real one on a USB port.
 
 The X1 lives in the extension's side panel, with a Connect/Disconnect switch
-(plug and unplug), the Measure button, indicator LEDs, a firmware status card,
+(plug and unplug), a Reset button, the Measure button, indicator LEDs, a firmware status card,
 a traffic log and a drawer of faults.
 
 GPLv3. The device logic is written from the upstream Windows app
@@ -54,6 +54,11 @@ to Chrome's real Web Serial.
   0x8000 that ticks, serial at 0x8008, calibration at 0x9040/0x9080), laser and
   calibration commands, laser trigger, firmware receiver with CRC checks and a
   bootloader ("bricked") state after an interrupted flash.
+- **Reset**: the panel's Reset button, or DTR/RTS pulled low by the host, resets
+  the X1's processor only; the USB-serial chip stays powered, so the port stays
+  open. It boots for 600 ms (silent), clears laser and calibration mode, keeps
+  memory, and interrupts a flash in progress. DTR/RTS reset is a guess about the
+  X1's wiring and can be turned off in the Device drawer.
 
 Guesses until the real X1 is measured are listed in
 `docs/superpowers/specs/2026-09-25-x1-emulator-design.md` (timings, shot

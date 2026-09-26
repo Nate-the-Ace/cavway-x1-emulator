@@ -47,6 +47,9 @@ button:disabled { opacity: .45; cursor: default; }
 .ghost { background: transparent; }
 .danger { color: var(--danger); border-color: currentColor; background: transparent; }
 .plug { min-width: 104px; padding: 7px 12px; font-weight: 600; background: var(--accent); color: var(--accent-ink); border-color: transparent; }
+.actions { display: flex; gap: 6px; align-items: center; }
+.reset { padding: 7px 10px; font-weight: 600; }
+.reset:active:not(:disabled) { transform: translateY(1px); }
 .plug[aria-pressed="true"] { background: transparent; color: var(--ink); border-color: var(--line); }
 
 .leds { display: grid; grid-template-columns: repeat(6, 1fr); gap: 4px; background: var(--card); border: 1px solid var(--line); border-radius: 8px; padding: 10px 4px 8px; margin-bottom: 10px; }
