@@ -95,7 +95,8 @@ export function makePage(chrome, { origin = 'https://nate-the-ace.github.io', ch
   const page = { win, nav, activation, location, chooserAnswer: choose, choices: [] };
 
   const relay = readFileSync(new URL('../shim/relay.js', import.meta.url), 'utf8');
-  new Function('window', 'location', 'chrome', relay)(win, location, chrome);
+  const quietInterval = (fn, ms) => { const t = setInterval(fn, ms); t.unref(); return t; };
+  new Function('window', 'location', 'chrome', 'setInterval', relay)(win, location, chrome, quietInterval);
   globalThis.__CVX1_TEST__ = {};
   new Function(readFileSync(new URL('../shim/serial.js', import.meta.url), 'utf8'))();
   const { install } = globalThis.__CVX1_TEST__;

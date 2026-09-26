@@ -405,7 +405,7 @@
   }
 
   if (root.__CVX1_TEST__) {
-    Object.assign(root.__CVX1_TEST__, { createWebSerial, install });
+    Object.assign(root.__CVX1_TEST__, { createWebSerial, install, domChooser });
     return;
   }
   if (typeof window === 'undefined' || !window.isSecureContext || window.top !== window) return;

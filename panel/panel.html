@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cavway X1 Emulator</title>
+<link rel="stylesheet" href="panel.css">
+</head>
+<body>
+<header class="top">
+  <div class="id">
+    <h1>Cavway X1</h1>
+    <span class="sub">Emulator · serial <span id="serialNo">—</span></span>
+  </div>
+  <button id="btnPlug" class="plug" aria-pressed="false">Connect</button>
+</header>
+<p id="status" class="status">Unplugged</p>
+
+<section class="leds" aria-label="Indicators">
+  <div class="led" data-led="power"><i></i><span>Power</span></div>
+  <div class="led" data-led="laser"><i></i><span>Laser</span></div>
+  <div class="led" data-led="cali"><i></i><span>Cali</span></div>
+  <div class="led" data-led="rx"><i></i><span>RX</span></div>
+  <div class="led" data-led="tx"><i></i><span>TX</span></div>
+  <div class="led" data-led="brick"><i></i><span>Bricked</span></div>
+</section>
+
+<section class="card">
+  <div class="measure-row">
+    <button id="btnMeasure" class="measure">Measure</button>
+    <div class="measure-opts">
+      <div class="seg" role="group" aria-label="Shot type">
+        <button data-kind="leg" aria-pressed="true">Leg</button>
+        <button data-kind="splay" aria-pressed="false">Splay</button>
+      </div>
+      <label>Flag
+        <select id="selFlag">
+          <option value="7">None</option>
+          <option value="0">Feature</option>
+          <option value="1">Ridge</option>
+          <option value="2">Backsight</option>
+          <option value="3">Generic</option>
+        </select>
+      </label>
+    </div>
+  </div>
+  <div class="grid3">
+    <label>Distance m<input id="inDist" type="number" step="0.01" min="0" placeholder="random"></label>
+    <label>Azimuth °<input id="inAz" type="number" step="0.1" min="0" max="360" placeholder="random"></label>
+    <label>Inclination °<input id="inInc" type="number" step="0.1" min="-90" max="90" placeholder="random"></label>
+  </div>
+  <div class="row between">
+    <span><b id="shotCount">0</b> shots stored</span>
+    <button id="btnClearShots" class="ghost">Clear shots</button>
+  </div>
+</section>
+
+<section class="card">
+  <h2>Firmware</h2>
+  <dl class="kv">
+    <dt>State</dt><dd id="fwState">app</dd>
+    <dt>Packets</dt><dd id="fwPackets">0</dd>
+    <dt>CRC failures</dt><dd id="fwCrc">0</dd>
+    <dt>Last result</dt><dd id="fwResult">—</dd>
+    <dt>Installed</dt><dd id="fwInstalled">factory image</dd>
+  </dl>
+  <div class="row">
+    <button id="btnSaveImage" class="ghost" disabled>Save received image</button>
+    <button id="btnRecover" class="ghost" hidden>Recover (factory)</button>
+  </div>
+</section>
+
+<details class="card" id="faults">
+  <summary>Faults <span id="faultBadge" class="badge" hidden>on</span></summary>
+  <h3>Line</h3>
+  <div class="grid2">
+    <label>Extra latency ms<input data-fault="latencyMs" type="number" min="0" step="10" value="0"></label>
+    <label>Jitter ms<input data-fault="jitterMs" type="number" min="0" step="10" value="0"></label>
+    <label>Corrupt → host %<input data-fault="corruptToHost" data-pct type="number" min="0" max="100" step="0.1" value="0"></label>
+    <label>Corrupt → device %<input data-fault="corruptToDevice" data-pct type="number" min="0" max="100" step="0.1" value="0"></label>
+    <label>Drop replies %<input data-fault="dropReplyRate" data-pct type="number" min="0" max="100" step="1" value="0"></label>
+    <label>Seed<input data-fault="seed" type="number" min="1" step="1" value="1"></label>
+  </div>
+  <label class="check"><input data-fault="freeze" type="checkbox"> Freeze (answer nothing)</label>
+  <h3>One-shot</h3>
+  <div class="row wrap">
+    <button class="ghost" data-oneshot="dropNextReply">Drop next reply</button>
+    <button class="ghost" data-oneshot="strayNext">Stray packet before next reply</button>
+    <span class="row nomargin"><button class="ghost" id="btnUnplugLater">Unplug in</button><input id="inUnplugMs" class="short" type="number" min="0" step="100" value="2000" aria-label="Unplug delay in ms"> ms</span>
+  </div>
+  <h3>Firmware flash</h3>
+  <div class="grid2">
+    <label>NAK packet #<input data-fault="fwNakAt" data-nullable type="number" min="0" step="1" placeholder="off"></label>
+    <label>Bad CRC echo at #<input data-fault="fwBadCrcAt" data-nullable type="number" min="0" step="1" placeholder="off"></label>
+    <label>Stall at packet #<input data-fault="fwStallAt" data-nullable type="number" min="0" step="1" placeholder="off"></label>
+    <label>Unplug at packet #<input data-fault="fwUnplugAt" data-nullable type="number" min="0" step="1" placeholder="off"></label>
+    <label>Slow erase +ms<input data-fault="fwSlowStartMs" type="number" min="0" step="100" value="0"></label>
+  </div>
+  <label class="check"><input data-fault="fwRejectEnd" type="checkbox"> Reject final checksum</label>
+  <div class="row"><button id="btnClearFaults" class="ghost">Clear all faults</button></div>
+</details>
+
+<details class="card">
+  <summary>Device</summary>
+  <div class="grid2">
+    <label>Serial number<input id="inSerial" type="number" min="0" max="65535" step="1"></label>
+    <label>Device clock<output id="outClock">—</output></label>
+  </div>
+  <label class="check"><input data-setting="streamLive" type="checkbox" checked> Stream live shots to the host (guess)</label>
+  <label class="check"><input data-setting="brickOnAbort" type="checkbox" checked> Brick on interrupted flash</label>
+  <div class="row"><button id="btnFactory" class="danger">Factory reset</button></div>
+</details>
+
+<details class="card" open>
+  <summary>Traffic</summary>
+  <div class="row between">
+    <label class="check"><input id="chkFollow" type="checkbox" checked> Follow</label>
+    <span class="row"><button id="btnCopyLog" class="ghost">Copy</button><button id="btnClearLog" class="ghost">Clear</button></span>
+  </div>
+  <pre id="log" class="log" aria-live="off"></pre>
+</details>
+
+<footer class="foot">
+  <label class="check"><input id="chkIntercept" type="checkbox" checked> Intercept Web Serial on flasher pages</label>
+</footer>
+<script type="module" src="panel.js"></script>
+</body>
+</html>

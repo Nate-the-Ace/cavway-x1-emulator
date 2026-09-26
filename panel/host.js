@@ -4,7 +4,7 @@
 import { Wire } from '../device/wire.js';
 
 export class Host {
-  constructor({ x1, now = () => performance.now(), setTimer = setTimeout, clearTimer = clearTimeout, onTraffic = () => {}, onChange = () => {}, onLog = () => {} }) {
+  constructor({ x1, now = () => performance.now(), setTimer = (fn, ms) => setTimeout(fn, ms), clearTimer = (h) => clearTimeout(h), onTraffic = () => {}, onChange = () => {}, onLog = () => {} }) {
     Object.assign(this, { x1, now, setTimer, clearTimer, onTraffic, onChange, onLog });
     this.plugged = false;
     this.presences = new Set();
@@ -27,7 +27,7 @@ export class Host {
   addPresence(ch) {
     this.presences.add(ch);
     ch.onClose(() => this.presences.delete(ch));
-    ch.post({ t: 'plugged', plugged: this.plugged });
+    if (this.plugged) ch.post({ t: 'plugged', plugged: true });
   }
 
   addWire(ch) {
@@ -35,8 +35,10 @@ export class Host {
       const mine = this.session?.ch === ch;
       switch (m.t) {
         case 'open': {
-          if (!this.plugged || this.session) {
-            this.onLog(this.plugged ? `Open refused: port busy (${m.origin})` : 'Open refused: unplugged');
+          // Unplugged: stay silent, another window's panel may hold the X1.
+          if (!this.plugged) return;
+          if (this.session) {
+            this.onLog(`Open refused: port busy (${m.origin})`);
             ch.post({ t: 'open-failed' });
             return;
           }
@@ -62,6 +64,11 @@ export class Host {
       }
     });
     ch.onClose(() => { if (this.session?.ch === ch) { this._endSession(); this.onLog('Host went away'); } });
+  }
+
+  // Bytes the device sends on its own (a live shot), if a host has the port.
+  sendUnsolicited(bytes) {
+    this.session?.wire.deviceSend(bytes);
   }
 
   // Timed faults: unplug after a delay.

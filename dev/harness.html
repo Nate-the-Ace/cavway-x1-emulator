@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>X1 Emulator Harness</title>
+<style>
+  html, body { margin: 0; height: 100%; background: #151917; }
+  .wrap { display: flex; height: 100%; gap: 1px; }
+  iframe { border: 0; height: 100%; background: #fff; }
+  #flasher { flex: 1; min-width: 0; }
+  #panel { width: 380px; flex: none; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <iframe id="flasher" src="/flasher/" title="Cavway Assistant Web"></iframe>
+  <iframe id="panel" src="/ext/panel/panel.html" title="X1 emulator panel"></iframe>
+</div>
+</body>
+</html>

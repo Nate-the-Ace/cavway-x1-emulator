@@ -33,6 +33,9 @@
     });
   }
 
+  // The panel may be mid-load when we first knock; keep knocking quietly.
+  setInterval(() => { if (!presence) connectPresence(); }, 2000);
+
   function dropWire(lost) {
     if (!wire) return;
     const w = wire;
@@ -62,6 +65,8 @@
       if (wire === port) dropWire(true);
     });
     port.postMessage({ t: 'open', options, origin });
+    // No panel holding a plugged-in X1 answers: the open fails, as with no device.
+    setTimeout(() => { if (wire === port && pendingOpenId === id) dropWire(false); }, 1000);
   }
 
   async function saveGrant(on) {

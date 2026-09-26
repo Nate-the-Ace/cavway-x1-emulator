@@ -199,3 +199,33 @@ Faults drawer (above). Device drawer: serial number, clock, Factory reset.
 4. host hub + relay + background + manifest
 5. panel UI
 6. e2e against the flasher; README; browser checks
+
+## As built (2026-09-25)
+
+Diverged from or added to the design above:
+
+- **Streams recreate lazily.** Chrome hands out a fresh `readable`/`writable`
+  after a cancel or a non-fatal error while the port is open; the shim does the
+  same. Bytes that arrive before the page first touches `readable` are held,
+  as Chrome's data pipe holds them.
+- **An unplugged panel stays silent** on a wire open instead of refusing it,
+  because `runtime.connect` reaches every listening extension page (two
+  windows can each have the panel open). The relay fails an unanswered open
+  after 1 s. A plugged panel with a session refuses (`open-failed`).
+- **The relay knocks every 2 s** for the panel while it has no presence port;
+  the panel's `panel-up` broadcast alone lost a race when both loaded at once.
+- **Timers must stay visible.** A hidden page's timers are throttled to about
+  1 s, which pushes replies past the flasher's timeouts. The side panel is
+  visible while open; the preview browser's pages report `hidden`, so harness
+  checks there are run in a freshly opened tab.
+- **Default timer functions are wrapped** (`(fn, ms) => setTimeout(fn, ms)`):
+  a bare `setTimeout` called as a method throws "Illegal invocation" in
+  browsers but not in Node, so only the browser caught it.
+- **Dev harness** (`dev/serve.mjs`) serves the unmodified flasher with the
+  shim injected, and the panel with a `chrome.*` stub over BroadcastChannel.
+
+Verified in the harness through the flasher's own UI: chooser, connect, serial
+number, download of 100 shots, a 41-packet firmware flash ("upgrade success"),
+and unplug-at-packet-10 ("Upgrade Fail at packet 10 of 41", flasher
+disconnected, emulator bricked, then recovered). Not yet verified: the
+unpacked extension in Chrome itself.
