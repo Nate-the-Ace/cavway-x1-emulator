@@ -1,0 +1,27 @@
+{
+  "manifest_version": 3,
+  "name": "Cavway X1 Emulator",
+  "version": "0.1.0",
+  "description": "A software Cavway X1 behind a fake Web Serial port, for testing Cavway Assistant Web without hardware.",
+  "minimum_chrome_version": "116",
+  "permissions": ["storage", "sidePanel"],
+  "background": { "service_worker": "background.js" },
+  "action": { "default_title": "Cavway X1 Emulator" },
+  "side_panel": { "default_path": "panel/panel.html" },
+  "icons": { "128": "panel/icon.png" },
+  "content_scripts": [
+    {
+      "matches": ["https://nate-the-ace.github.io/*", "http://localhost/*", "http://127.0.0.1/*"],
+      "js": ["shim/serial.js"],
+      "run_at": "document_start",
+      "world": "MAIN",
+      "all_frames": false
+    },
+    {
+      "matches": ["https://nate-the-ace.github.io/*", "http://localhost/*", "http://127.0.0.1/*"],
+      "js": ["shim/relay.js"],
+      "run_at": "document_start",
+      "all_frames": false
+    }
+  ]
+}
