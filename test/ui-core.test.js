@@ -4,8 +4,10 @@ import { rig } from './ui-helpers.js';
 
 test('dark until DIST, then shows the device date and time', () => {
   const r = rig();
-  r.tap('m');
-  assert.equal(r.ui.on, false);
+  for (const b of ['m', 'left', 'right', 'clr']) {
+    r.tap(b);
+    assert.equal(r.ui.on, false, `${b} does not wake the X1`);
+  }
   assert.equal(r.text().trim(), '');
   r.tap('dist');
   assert.equal(r.ui.on, true);
@@ -40,11 +42,19 @@ test('idle power-off follows the setting and any press resets it', () => {
   assert.equal(r.ui.on, false);
 });
 
-test('a long press fires once and its release does nothing', () => {
+test('a long press fires once at the threshold and its release does nothing', () => {
   const r = rig();
   r.tap('dist');
-  r.hold('dist', 2500);
-  assert.equal(r.name(), 'HomeScreen');
+  const seen = [];
+  r.ui.screen.key = (ui, b, kind) => seen.push(`${b}:${kind}`);
+  r.ui.press('dist');
+  r.run(1900);
+  assert.deepEqual(seen, [], 'not yet at 2 s');
+  r.run(200);
+  assert.deepEqual(seen, ['dist:long']);
+  r.run(1000);
+  r.ui.release('dist');
+  assert.deepEqual(seen, ['dist:long'], 'no second long press and no tap on release');
 });
 
 test('DIST+M held together is a chord, not two long presses', () => {
