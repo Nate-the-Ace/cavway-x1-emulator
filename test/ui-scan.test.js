@@ -64,3 +64,21 @@ test('the X1 stays awake through a long scan and the idle timer restarts after i
   r.run(30_000);
   assert.equal(r.ui.on, true, 'idle timer restarted when the scan ended');
 });
+
+test('the idle timer restarts when the time limit ends the scan', () => {
+  const r = armed();
+  r.ui.settings.scanMinutes = 1;
+  chord(r);
+  r.run(61_000);
+  assert.equal(r.name(), 'MeasureScreen');
+  r.run(30_000);
+  assert.equal(r.ui.on, true);
+});
+
+test('the scan ends when a shot cannot be stored', () => {
+  const r = armed();
+  chord(r);
+  r.x1.firmware.state = 'bootloader'; // the X1 cannot measure
+  r.run(800);
+  assert.equal(r.name(), 'MeasureScreen');
+});

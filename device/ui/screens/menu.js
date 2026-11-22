@@ -162,7 +162,8 @@ export class TimeScreen {
     else if (b === 'm') this.at = (this.at + 1) % 6;
     else if (b === 'clr') {
       const [y, mo, d, h, mi, s] = this.f;
-      ui.x1.memory.setClock(Date.UTC(y, mo - 1, d, h, mi, s) / 1000);
+      const daysInMonth = new Date(Date.UTC(y, mo, 0)).getUTCDate();
+      ui.x1.memory.setClock(Date.UTC(y, mo - 1, Math.min(d, daysInMonth), h, mi, s) / 1000);
       this.back(ui);
     }
   }

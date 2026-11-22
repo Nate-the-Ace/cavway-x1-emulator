@@ -174,3 +174,18 @@ test('long > on the measure screen asks to clear unsent shots', () => {
   r.tap('clr');
   assert.match(r.text(), /AZM/);
 });
+
+test('time editor clamps the day to the month', () => {
+  const r = menu();
+  r.x1.memory.setClock(Date.UTC(2028, 0, 31, 12, 0, 0) / 1000); // 31 Jan 2028, a leap year
+  step(r, 4);
+  r.tap('m');
+  step(r, 3);
+  r.tap('m');
+  r.tap('m'); // Month field
+  r.tap('right'); // January to February
+  r.tap('clr');
+  const d = new Date(r.x1.memory.clock() * 1000);
+  assert.equal(d.getUTCMonth() + 1, 2);
+  assert.equal(d.getUTCDate(), 29, 'day 31 becomes the last day of February');
+});

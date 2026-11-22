@@ -28,10 +28,9 @@ export class ScanScreen {
       this.key0 = k;
       this.stableSince = t;
     } else if (k !== this.shotKey && t - this.stableSince >= SETTLE_MS[ui.settings.scanSpeed]) {
-      if (ui.instrument.fire({ scan: true })) {
-        this.count++;
-        this.shotKey = k;
-      }
+      if (!ui.instrument.fire({ scan: true })) { this.exit(ui); return; } // memory full or X1 busy
+      this.count++;
+      this.shotKey = k;
       ui.x1.laser = true;
     }
     if (this.count >= MAX_SHOTS || t - this.start >= ui.settings.scanMinutes * 60_000) this.exit(ui);
