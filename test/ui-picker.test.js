@@ -137,3 +137,29 @@ test('name editor: at most 8 characters', () => {
   r.tap('dist');
   assert.deepEqual(out.done, ['ABCDEFGH']);
 });
+
+test('the picker survives the callout list changing while open', () => {
+  const r = rig({ ui: { profile: PROPOSED } });
+  picker(r);
+  r.tap('right'); r.tap('right'); r.tap('m'); // inside Passage
+  r.ui.content = { callouts: parseCallouts('Only: one').categories, namePrefix: 'S', nameFirst: 1 };
+  assert.match(r.text(), /CALLOUT/);
+  assert.match(r.text(), /> Only/);
+  r.tap('right');
+  r.tap('right');
+  assert.match(r.text(), /> Only/);
+});
+
+test('a recent callout whose label is gone is not listed', () => {
+  const r = rig({ ui: { profile: PROPOSED } });
+  r.ui.annotations.setTag(0, 60); // no such callout
+  picker(r);
+  assert.doesNotMatch(r.text(), /Recent/);
+});
+
+test('name editor: an initial name longer than 8 characters is cut to 8', () => {
+  const r = rig({ ui: { profile: PROPOSED } });
+  const out = nameEditor(r, 'ABCDEFGHIJ');
+  r.tap('dist');
+  assert.deepEqual(out.done, ['ABCDEFGH']);
+});

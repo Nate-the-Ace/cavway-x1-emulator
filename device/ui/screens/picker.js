@@ -30,14 +30,20 @@ export class PickerScreen {
       return rows;
     }
     if (this.category === 'recent') return this._recent(ui).map((r) => ({ label: r.label, code: r.code }));
-    return cats[this.category].items.map((name, i) => ({ label: name, code: calloutCode(this.category, i) }));
+    const c = cats[this.category];
+    if (!c) { // the callout list changed under us: back to the categories
+      this.level = 0;
+      this.cursor = 0;
+      return this._rows(ui);
+    }
+    return c.items.map((name, i) => ({ label: name, code: calloutCode(this.category, i) }));
   }
 
   key(ui, b, kind) {
     if (kind !== 'tap') return;
     const rows = this._rows(ui);
     if (b === 'left') this.cursor = Math.max(0, this.cursor - 1);
-    else if (b === 'right') this.cursor = Math.min(rows.length - 1, this.cursor + 1);
+    else if (b === 'right') this.cursor = Math.max(0, Math.min(rows.length - 1, this.cursor + 1));
     else if (b === 'm') {
       const row = rows[this.cursor];
       if (!row) return;
@@ -62,7 +68,7 @@ export class PickerScreen {
     const rows = this._rows(ui);
     this.cursor = Math.min(this.cursor, Math.max(0, rows.length - 1));
     const start = Math.max(0, this.cursor - (VISIBLE - 1));
-    const title = this.level === 0 ? 'CALLOUT' : this.category === 'recent' ? 'Recent' : ui.content.callouts[this.category].name;
+    const title = this.level === 0 ? 'CALLOUT' : this.category === 'recent' ? 'Recent' : ui.content.callouts[this.category]?.name ?? '';
     const out = [title];
     for (let i = start; i < Math.min(rows.length, start + VISIBLE); i++) {
       out.push(`${i === this.cursor ? '> ' : '  '}${rows[i].label}`);
