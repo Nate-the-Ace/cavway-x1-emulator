@@ -27,7 +27,7 @@ shim is dropped (an unfinished draft of it is left uncommitted in
 
 - Anything that talks to other software: Bluetooth, USB changes, shot-record
   bytes, `0x03` name records, sync. Tags and names live in the UI model only.
-  (The vendor request in `docs/cavway-x1-feature-request.md` still describes
+  (The internal design notes in `docs/internal-design-notes.md` still describe
   the data side; this spec is only about on-device behavior.)
 - A model of human speed. Counts are exact; times use a simple adjustable
   model and are labeled as such.

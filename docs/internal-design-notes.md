@@ -1,4 +1,6 @@
-# Cavway X1 feature request: callout list, station names, and a host-editable list
+# Internal design notes: callout list, station names, and a host-editable list
+
+Our own notes. This has not been sent to anyone and is not addressed to the vendor. It records what we would want from the firmware, and what we still need to find out.
 
 Target: firmware after 1.1.7. Based on User Manual Rev C (firmware 1.1.6), Communication Protocol v1.0, and the 1.1.7 changelog.
 
@@ -16,7 +18,7 @@ The goal is to cut notebook and phone use in the cave, so the surveyor can mark 
 
 - Marks are stored in bits 1-3 of byte 1 of the shot record. That is 8 codes at most, and 5 are used (None, Feature, Ridge, Backsight, Generic). Pressing `M` to cycle through many callouts would also be slow.
 - The 64-byte shot record has no station name or label field. Apps have to invent station names after download.
-- Firmware 1.1.7 added a shot menu to change the last shot's mark, so a mark-editing flow already exists. This request extends that flow.
+- Firmware 1.1.7 added a shot menu to change the last shot's mark, so a mark-editing flow already exists. These notes extend that flow.
 
 ## Part 1: callout tags
 
@@ -36,14 +38,14 @@ The goal is to cut notebook and phone use in the cave, so the surveyor can mark 
 - A shot's tag stores the **id**, not the position. Reordering, renaming or removing callouts on the host therefore never changes what earlier shots mean.
 - The device ships with a built-in default list, in this order: Lead, Squeeze, Drip, Stream, Pool, Sump, Drop, Climb, Crawl, Breakdown, Flowstone, Column, Straw, Bats, Bones, Hazard (ids 1 to 16).
 - On boot, and when the list is opened, the device reads the list block (below). If the block is missing or invalid it uses the built-in list.
-- The list should survive firmware upgrades. **Please confirm whether it can.**
+- The list should survive firmware upgrades. **Unknown: whether it can.**
 - Information page, second page or a new third page: show `Callouts: rev N, M entries` (or `built-in`), so the user can see which list is on the device.
 
 ### Record change
 
 Add a one-byte `tag` to the shot record.
 
-- Proposed location: byte 55, if bytes 54-55 are unused. In the protocol document, bytes 45-55 are accuracy error information, and the parser appears to use only up to byte 53. **Please confirm which bytes are free.**
+- Proposed location: byte 55, if bytes 54-55 are unused. In the protocol document, bytes 45-55 are accuracy error information, and the parser appears to use only up to byte 53. **Unknown: which bytes are free.**
 - Value: 0 = none, 1-250 = callout id. 0xFF must also read as "none" so old records stay valid.
 - The existing mark in bits 1-3 stays as is, for backward compatibility.
 
@@ -64,7 +66,7 @@ All fields are bytes; multi-byte values are little endian.
 
 - Largest block: 12 + 13 x 64 + 2 = 846 bytes.
 - The device treats the block as invalid (and uses the built-in list) if the magic or version is wrong, the count is over 64, the CRC does not match, an id is 0, over 250 or repeated, or a name is empty or not printable ASCII.
-- Base address: **a suggestion only** (our emulator uses 0x9400). Please choose a free region.
+- Base address: **a suggestion only** (our emulator uses 0x9400). A real free region has to be found.
 
 ### How the host writes it
 
@@ -114,15 +116,15 @@ Add a **name record** rather than changing the 64-byte shot record.
 ### Compatibility
 
 - Old shot parsing is untouched. Apps that ignore unknown packet types keep working.
-- **Question for the vendor:** how do TopoDroid and SexyTopo handle an unknown packet type `0x03`? If they fail, an option is a setting in the Advanced menu that turns name records off (default off).
+- **Open question:** how do TopoDroid and SexyTopo handle an unknown packet type `0x03`? If they fail, an option is a setting in the Advanced menu that turns name records off (default off).
 
 ## Part 3: host protocol
 
 - The callout list block is read with `0x3d` and written with `0x3e` (above).
 - A way to read the device's capabilities (callout list, name records), for example firmware version gating, so apps can detect support.
-- **Bluetooth.** The protocol document lists only reads (`0x3d`) and the simple commands over Bluetooth. Do memory writes (`0x3e`) work over Bluetooth, using the same header and footer as other commands? If yes, a phone could edit the list too; if not, the phone can still read it. Please confirm.
+- **Bluetooth.** The protocol document lists only reads (`0x3d`) and the simple commands over Bluetooth. Do memory writes (`0x3e`) work over Bluetooth, using the same header and footer as other commands? If yes, a phone could edit the list too; if not, the phone can still read it. Untested.
 
-## Open questions for the vendor
+## Open questions
 
 1. Which bytes in 45-55 of the shot record are free (for the tag byte)?
 2. Which memory region can hold the 846-byte callout list block? Can it survive firmware upgrades?
@@ -130,7 +132,7 @@ Add a **name record** rather than changing the 64-byte shot record.
 4. Is a long `M` press free in the shot detail, laser-on and memory states, and can `<` and `>` pressed together be used as a shortcut?
 5. Is a different packet type, or a different location for names, preferred?
 6. Do memory writes work over Bluetooth?
-7. Is firmware source available to contributors, or should this stay a request?
+7. Is firmware source available to anyone outside the vendor?
 8. Is the manual's note that firmware upgrade erases calibration still true? The 1.1.4 changelog says it no longer does.
 
 ## Compatibility summary

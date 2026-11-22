@@ -148,7 +148,7 @@ is involved.
    much memory is free, and whether the vendor will add the feature, are all
    unknown.
 5. If Bluetooth writes do not work, is read-only on the phone enough?
-6. The feature request (`docs/cavway-x1-feature-request.md`) now describes the callout
-   id tag byte and this block; it has not been sent to the vendor yet.
+6. The internal design notes (`docs/internal-design-notes.md`) describe the callout
+   id tag byte and this block. They are for our own use and have not been sent to the vendor.
 7. The 16-bit revision wraps after 65 536 edits, so it cannot identify a list. Whether
    the device holds a given list is decided by comparing the block bytes or CRC.

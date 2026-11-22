@@ -200,5 +200,5 @@ const onDevice = await readLibrary(readFn, baseAddr);      // { ok, lib } or { o
 
 Not done: the emulator does not read its list from this block yet, the panel editor does
 not use the library, and nothing is sent to a real X1. The real memory address and the
-firmware feature to read the block need the vendor (see `docs/cavway-x1-feature-request.md`).
+firmware feature to read the block need the vendor (see `docs/internal-design-notes.md`; it has not been sent to anyone).
 Whether memory writes work over Bluetooth is untested.

@@ -9,9 +9,9 @@ Test changes to the X1's on-device interface, and how they sync into CaveCAD,
 without flashing a real unit. Today the emulator fakes the USB serial protocol
 only: it has no buttons, no screen and no menus, and no Bluetooth.
 
-The driving use case is the planned additions in the vendor feature request
-draft (callout tags, on-device station names): prototype the button flows and the
-sync in software, then send a proven design to the vendor. Firmware source is
+The driving use case is the planned additions in our internal design
+notes (callout tags, on-device station names): prototype the button flows and the
+sync in software, then decide what, if anything, to take to the vendor. Firmware source is
 not public, so a modified firmware cannot be built. The emulator is the only
 place the new interface can run.
 
@@ -125,8 +125,8 @@ consecutive close shots set the leg flag. A fault drawer can force `ACC ERR`.
 ### Profiles
 
 - **stock-1.1.7:** manual and changelog behavior only.
-- **proposed:** adds what the vendor feature request draft describes (callout
-  tags and station names; the draft is `docs/cavway-x1-feature-request.md`).
+- **proposed:** adds what the internal design notes describe (callout
+  tags and station names; the notes are `docs/internal-design-notes.md`).
   - Long `M` opens the callout picker (two levels, 8 categories of up to 8
     items, 6-bit code, three most-recent items first).
   - Name editor: `<` `>` scroll characters, `M` commits and advances, `CLR`
