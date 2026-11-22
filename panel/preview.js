@@ -1,8 +1,8 @@
 // Panel pieces for judging the proposed interface: profile switch, press counter,
 // scenario comparison and the callout editor.
-import { STOCK } from '../device/ui/profile.js';
+import { STOCK, PROPOSED } from '../device/ui/profile.js';
 import { InputRecorder, presses } from '../device/ui/recorder.js';
-import { parseCallouts, DEFAULT_CALLOUT_TEXT } from '../device/ui/callouts.js';
+import { parseCallouts, DEFAULT_CALLOUT_TEXT, calloutFromCode, findCallout } from '../device/ui/callouts.js';
 import { SCENARIOS, compare, toMarkdown, estimateMs } from '../device/ui/scenarios.js';
 
 const el = (tag, text, cls) => {
@@ -20,13 +20,14 @@ export async function mountPreview({ ui, root, store, note }) {
   const rec = new InputRecorder();
   ui.onInput = (e) => rec.record(e);
   const sel = $('selProfile');
-  sel.value = saved.profile ?? STOCK;
+  sel.value = saved.profile === PROPOSED ? PROPOSED : STOCK;
   ui.setProfile(sel.value);
   sel.addEventListener('change', () => {
     ui.setProfile(sel.value);
     rec.reset();
     store.set({ profile: sel.value });
-    note(`Profile: ${sel.value} (the X1 was powered off)`);
+    sel.blur(); // so the X1's keys work again
+    note(`Profile: ${sel.value}. The X1 was powered off and callouts and names were cleared.`);
   });
 
   // ---- callout content -----------------------------------------------------
@@ -41,6 +42,12 @@ export async function mountPreview({ ui, root, store, note }) {
     if (!r.ok) return false;
     const prefix = $('namePrefix').value.trim() || 'S';
     const first = Math.max(0, Math.floor(Number($('nameFirst').value) || 0));
+    // Callouts are stored as positions: follow items to their new place, drop removed ones.
+    const old = ui.content.callouts;
+    ui.annotations.remapTags((code) => {
+      const info = calloutFromCode(old, code);
+      return info ? findCallout(r.categories, info.category, info.item) : 0;
+    });
     ui.content = { callouts: r.categories, namePrefix: prefix, nameFirst: first };
     store.set({ content: { text, prefix, first } });
     note('Callout menu applied');
@@ -80,10 +87,15 @@ export async function mountPreview({ ui, root, store, note }) {
     drawCounts();
   });
   $('btnCountReset').addEventListener('click', () => { rec.reset(); drawCounts(); });
-  $('btnCountCopy').addEventListener('click', async () => {
-    await navigator.clipboard.writeText(rec.toText());
-    note('Press counts copied');
-  });
+  const copy = async (text, done) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      note(done);
+    } catch (e) {
+      note(`Could not copy: ${e.message}`);
+    }
+  };
+  $('btnCountCopy').addEventListener('click', () => copy(rec.toText(), 'Press counts copied'));
 
   // ---- scenarios -----------------------------------------------------------
   const sc = $('selScenario');
@@ -115,19 +127,24 @@ export async function mountPreview({ ui, root, store, note }) {
   }
 
   function run(list) {
-    try {
-      last = list.map((s) => compare(s, { content: ui.content }));
-    } catch (e) {
-      $('scenarioOut').replaceChildren(el('p', `Scenario failed: ${e.message}`, 'errors'));
-      return;
+    const done = [];
+    const blocks = [];
+    for (const s of list) {
+      try {
+        const c = compare(s, { content: ui.content });
+        blocks.push(table(c));
+        done.push(c);
+      } catch (e) {
+        blocks.push(el('p', `${s.name} failed: ${e.message}`, 'errors'));
+      }
     }
-    $('scenarioOut').replaceChildren(...last.map(table));
+    last = done;
+    $('scenarioOut').replaceChildren(...blocks);
   }
   $('btnRun').addEventListener('click', () => run([SCENARIOS.find((s) => s.id === sc.value)]));
   $('btnRunAll').addEventListener('click', () => run(SCENARIOS));
   $('btnScenarioCopy').addEventListener('click', async () => {
     if (!last.length) { note('Run a scenario first'); return; }
-    await navigator.clipboard.writeText(toMarkdown(last));
-    note('Scenario results copied as markdown');
+    await copy(toMarkdown(last), 'Scenario results copied as markdown');
   });
 }

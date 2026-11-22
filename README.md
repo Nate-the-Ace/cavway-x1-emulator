@@ -154,6 +154,10 @@ Tools for judging the flows:
 - **Callout menu.** Edit categories and items (up to 8 by 8, names up to 8
   characters), the name prefix and the first number.
 
+Tags and names are not kept across panel reloads (shots are). Editing the callout
+menu keeps existing tags attached to the same items and drops tags whose item was
+removed.
+
 Guessed: the 1 s long press for M, using a long M after a shot as the shot menu (the
 real 1.1.7 shot menu may open differently), the stock steps in each scenario, and the
 time model. A slow M tap (held 1 s or more) becomes a long press in the proposed

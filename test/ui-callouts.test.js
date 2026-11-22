@@ -94,3 +94,21 @@ test('Annotations: tags, names, recent list', () => {
   assert.equal(a.names.size, 0);
   assert.equal(a.suggestName('S', 1), 'S1');
 });
+
+test('Annotations.remapTags follows an edited list', () => {
+  const a = new Annotations();
+  a.setTag(0, 1); // Water > Drip
+  a.setTag(1, 11); // Calcite > Straw
+  const oldCats = parseCallouts(DEFAULT_CALLOUT_TEXT).categories;
+  const newCats = parseCallouts('Calcite: Stalag, Column, Straw\nWater: Drip').categories;
+  a.remapTags((code) => {
+    const info = calloutFromCode(oldCats, code);
+    return info ? findCallout(newCats, info.category, info.item) : 0;
+  });
+  assert.equal(a.tag(0), calloutCode(1, 0), 'Drip moved to the second category');
+  assert.equal(a.tag(1), calloutCode(0, 2), 'Straw moved up');
+  assert.deepEqual(a.recent, [calloutCode(0, 2), calloutCode(1, 0)]);
+  a.remapTags(() => 0);
+  assert.equal(a.tags.size, 0);
+  assert.deepEqual(a.recent, []);
+});

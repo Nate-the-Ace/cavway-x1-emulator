@@ -226,6 +226,7 @@ $('btnFactory').addEventListener('click', () => {
   $('btnFactory').textContent = 'Factory reset';
   x1.factoryReset();
   ui.resetState();
+  if (ui.on) ui.open('home');
   note('Factory reset');
 });
 

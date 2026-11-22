@@ -25,6 +25,8 @@ export class InputRecorder {
   }
 
   record(e) {
+    // The hold beyond a long press's threshold, reported when the button is released.
+    if (e.kind === 'release') { this.tasks.at(-1).holdMs += e.heldMs; return; }
     if (this.startedAt === null) this.startedAt = e.t;
     this.events.push(e);
     if (this.events.length > this.maxLog) this.events.shift();

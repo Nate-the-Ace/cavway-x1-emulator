@@ -72,7 +72,13 @@ export class Ui {
   release(b) {
     const e = this.down.get(b);
     this.down.delete(b);
-    if (!e || e.fired || !this.on) return;
+    if (!e || !this.on) return;
+    if (e.fired) {
+      // A long press or chord was already reported at its threshold: report the extra hold.
+      const extra = e.reported === undefined ? 0 : this.now() - e.at - e.reported;
+      if (extra > 0) this._report(b, 'release', extra, this.screen?.constructor.name ?? 'off');
+      return;
+    }
     this.lastInput = this.now();
     // An arrow released while the other arrow is still down: one left+right tap.
     const other = b === 'left' ? 'right' : b === 'right' ? 'left' : null;
@@ -96,11 +102,15 @@ export class Ui {
     if (d && m && !d.fired && !m.fired && t - Math.max(d.at, m.at) >= LONG_MS) {
       d.fired = true;
       m.fired = true;
+      d.reported = t - d.at;
+      m.reported = Infinity; // the hold is counted once, on DIST
       this._dispatch('dist+m', 'chord', t - Math.max(d.at, m.at));
     }
     if (l && r && !l.fired && !r.fired && Math.abs(l.at - r.at) <= PAIR_MS && t - Math.max(l.at, r.at) >= LONG_MS) {
       l.fired = true;
       r.fired = true;
+      l.reported = t - l.at;
+      r.reported = Infinity;
       this._dispatch('left+right', 'long', t - Math.max(l.at, r.at));
     }
     for (const [b, e] of this.down) {
@@ -113,6 +123,7 @@ export class Ui {
       if (partner && !partner.fired) continue;
       if (this.on && !e.fired && t - e.at >= longMs(this.profile, b)) {
         e.fired = true;
+        e.reported = t - e.at;
         this._dispatch(b, 'long', t - e.at);
       }
     }

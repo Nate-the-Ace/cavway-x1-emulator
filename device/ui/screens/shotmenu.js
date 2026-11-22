@@ -35,6 +35,7 @@ export function shotMenu({ ui, index, parent }) {
         if (!r) return;
         const next = MARK_CYCLE[(MARK_CYCLE.indexOf((r[1] >> 1) & 7) + 1) % MARK_CYCLE.length];
         r[1] = (r[1] & ~0x0e) | (next << 1);
+        u.x1._changed();
       },
     },
   ];
@@ -49,6 +50,7 @@ export function shotMenu({ ui, index, parent }) {
           u2.x1.memory.shots.pop();
           u2.annotations.drop(index);
           u2.sent.delete(index);
+          u2.x1._changed();
           u2.open('measure');
         },
         (u2) => u2.resume(self),

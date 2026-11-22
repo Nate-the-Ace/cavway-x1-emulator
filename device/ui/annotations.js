@@ -41,5 +41,14 @@ export class Annotations {
   // Forget one shot's annotations (the shot was deleted).
   drop(i) { this.tags.delete(i); this.names.delete(i); }
 
+  // Apply `fn(code) -> newCode (0 drops it)` to every stored callout, after the list was edited.
+  remapTags(fn) {
+    for (const [i, code] of [...this.tags]) {
+      const next = fn(code);
+      if (next) this.tags.set(i, next); else this.tags.delete(i);
+    }
+    this.recent = [...new Set(this.recent.map(fn).filter(Boolean))];
+  }
+
   suggestName(prefix, first) { return nextName(this.lastName, prefix, first); }
 }

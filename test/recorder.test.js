@@ -90,3 +90,14 @@ test('toText: zero log lines, and offsets count from the first input even after 
   r.reset();
   assert.equal(r.startedAt, null);
 });
+
+test('the hold beyond a long press threshold is added when the button is released', () => {
+  const t = rig();
+  const rec = new InputRecorder();
+  t.ui.onInput = (e) => rec.record(e);
+  t.tap('dist');
+  t.hold('right', 3000);
+  assert.equal(rec.totals().longs, 1);
+  assert.equal(rec.totals().holdMs, 3000);
+  assert.equal(rec.events.filter((e) => e.kind === 'release').length, 0, 'release events are not logged as presses');
+});

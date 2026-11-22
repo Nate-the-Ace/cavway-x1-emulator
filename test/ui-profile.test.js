@@ -125,7 +125,9 @@ test('onInput reports every dispatched input', () => {
     ['dist', 'tap', 'off'],
     ['right', 'tap', 'HomeScreen'],
     ['right', 'long', 'MemoryScreen'],
+    ['right', 'release', 'MemoryScreen'],
     ['dist+m', 'chord', 'MemoryScreen'],
+    ['dist', 'release', 'MemoryScreen'],
   ]);
   assert.equal(events[2].heldMs >= 2000, true);
   assert.equal(typeof events[0].t, 'number');

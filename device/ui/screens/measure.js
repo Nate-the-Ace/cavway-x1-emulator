@@ -19,6 +19,11 @@ export class MeasureScreen {
 
   enter(ui) { this.arm(ui); }
 
+  // The shots may have been cleared or reset under a result page: start over armed.
+  _sync(ui) {
+    if (this.result && !ui.x1.memory.shots[this.result.index]) this.arm(ui);
+  }
+
   arm(ui) {
     this.result = null;
     this.page = 0;
@@ -42,6 +47,7 @@ export class MeasureScreen {
   }
 
   key(ui, b, kind) {
+    this._sync(ui);
     const armed = this.result === null;
     const s = ui.settings;
     if (b === 'dist+m') {
@@ -85,11 +91,13 @@ export class MeasureScreen {
   }
 
   tick(ui, t) {
+    this._sync(ui);
     if (this.dueAt !== null && t >= this.dueAt) this.take(ui);
   }
 
   render(ui) {
     const s = ui.settings;
+    this._sync(ui);
     if (this.result) return this._result(ui);
     const p = ui.instrument.pose;
     const rows = [

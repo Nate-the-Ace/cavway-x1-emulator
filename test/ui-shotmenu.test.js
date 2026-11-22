@@ -195,3 +195,13 @@ test('the pending tag stays visible during a delayed-shot countdown', () => {
   assert.match(r.text(), /Tag: Drip/);
   assert.match(r.text(), /Shot in 2s/);
 });
+
+test('clearing the shots under a result page re-arms instead of breaking', () => {
+  const r = prop();
+  shoot(r);
+  r.x1.memory.shots = [];
+  assert.match(r.text(), /DIST +---- m/);
+  assert.equal(r.x1.laser, true);
+  r.tap('dist');
+  assert.equal(r.x1.memory.shots.length, 1);
+});

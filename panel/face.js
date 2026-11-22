@@ -36,26 +36,29 @@ export function mountFace({ ui, canvas, root, note, onStateChange = () => {} }) 
   }
 
   // On-screen buttons: pointer down is press, up/leave/cancel is release.
+  const pointerHeld = new Set();
   for (const el of root.querySelectorAll('[data-btn]')) {
     const b = el.dataset.btn;
-    el.addEventListener('pointerdown', (e) => { e.preventDefault(); for (const x of buttonsOf(b)) ui.press(x); draw(); });
+    el.addEventListener('pointerdown', (e) => { e.preventDefault(); pointerHeld.add(b); for (const x of buttonsOf(b)) ui.press(x); draw(); });
     for (const type of ['pointerup', 'pointerleave', 'pointercancel']) {
-      el.addEventListener(type, () => { for (const x of buttonsOf(b)) ui.release(x); draw(); });
+      el.addEventListener(type, () => { pointerHeld.delete(b); for (const x of buttonsOf(b)) ui.release(x); draw(); });
     }
   }
 
   // Keyboard, unless the user is typing in a field.
   // Also leave panel buttons and drawer headers alone, so Space and Enter still activate them.
-  const typing = () => {
+  const typing = (e) => {
     const el = document.activeElement;
     if (!el) return false;
-    if (/^(INPUT|SELECT|TEXTAREA|SUMMARY)$/.test(el.tagName)) return true;
-    return el.tagName === 'BUTTON' && !el.dataset.btn;
+    if (/^(INPUT|SELECT|TEXTAREA)$/.test(el.tagName)) return true;
+    // Panel buttons and drawer headers keep Space and Enter; the other keys still work the X1.
+    if (el.tagName === 'SUMMARY' || (el.tagName === 'BUTTON' && !el.dataset.btn)) return e.key === ' ' || e.key === 'Enter';
+    return false;
   };
   const held = new Set();
   window.addEventListener('keydown', (e) => {
     const b = KEYMAP[e.key];
-    if (!b || e.repeat || typing()) return;
+    if (!b || e.repeat || typing(e)) return;
     e.preventDefault();
     held.add(b);
     for (const x of buttonsOf(b)) ui.press(x);
@@ -70,8 +73,9 @@ export function mountFace({ ui, canvas, root, note, onStateChange = () => {} }) 
   });
   // Losing focus while a key is held would otherwise leave the button stuck down.
   window.addEventListener('blur', () => {
-    for (const b of held) for (const x of buttonsOf(b)) ui.release(x);
+    for (const b of [...held, ...pointerHeld]) for (const x of buttonsOf(b)) ui.release(x);
     held.clear();
+    pointerHeld.clear();
     draw();
   });
 
