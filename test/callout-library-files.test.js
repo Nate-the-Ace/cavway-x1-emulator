@@ -94,7 +94,63 @@ test('diff', () => {
   assert.deepEqual(d.renamed, [{ id: 3, from: 'Pool', to: 'Pools' }]);
   assert.equal(d.changed, true);
   const m = diff(a, move(a, 3, 0).lib);
-  assert.deepEqual(m.moved.map((x) => x.id).sort(), [1, 2, 3]);
+  assert.deepEqual(m.moved.map((x) => x.id), [3], 'only the entry that jumped is reported');
   assert.equal(m.changed, true);
   assert.equal(diff(emptyLibrary(), emptyLibrary()).changed, false);
+});
+
+test('diff reports the fewest moved entries', () => {
+  const mk = (ids) => ({ version: 1, revision: 1, nextId: 10, entries: ids.map((id) => ({ id, name: `n${id}` })) });
+  assert.deepEqual(diff(mk([1, 2, 3, 4]), mk([2, 3, 4, 1])).moved.map((x) => x.id), [1]);
+  assert.deepEqual(diff(mk([1, 2, 3, 4]), mk([1, 2, 3, 4])).moved, []);
+  assert.deepEqual(diff(mk([1, 2, 3, 4]), mk([4, 3, 2, 1])).moved.length, 3);
+  const withAddRemove = diff(mk([1, 2, 3]), mk([9, 3, 1]));
+  assert.deepEqual(withAddRemove.added.map((x) => x.id), [9]);
+  assert.deepEqual(withAddRemove.removed.map((x) => x.id), [2]);
+  assert.ok(withAddRemove.moved.length >= 1);
+});
+
+test('diff sees a change of case as a rename', () => {
+  const a = base();
+  const b = { ...a, entries: a.entries.map((e) => (e.id === 1 ? { ...e, name: 'LEAD' } : e)) };
+  assert.deepEqual(diff(a, b).renamed, [{ id: 1, from: 'Lead', to: 'LEAD' }]);
+});
+
+test('fromText: an order-only change keeps ids and bumps the revision; a case-only change too', () => {
+  const order = fromText('Pool\nLead\nDrip', base());
+  assert.deepEqual(order.lib.entries.map((e) => e.id), [3, 1, 2]);
+  assert.equal(order.lib.revision, 8);
+  assert.equal(order.lib.nextId, 4);
+  const caseOnly = fromText('LEAD\nDrip\nPool', base());
+  assert.deepEqual(caseOnly.lib.entries.map((e) => e.id), [1, 2, 3]);
+  assert.equal(caseOnly.lib.entries[0].name, 'LEAD');
+  assert.equal(caseOnly.lib.revision, 8);
+});
+
+test('fromText refuses an inconsistent existing library instead of reusing ids', () => {
+  const bad = { version: 1, revision: 1, nextId: 1, entries: [{ id: 1, name: 'A' }] };
+  const r = fromText('B\nA', bad);
+  assert.equal(r.ok, false);
+  assert.match(r.errors[0], /existing library is invalid/);
+});
+
+test('fromText stops early on a huge text', () => {
+  const huge = Array.from({ length: 100000 }, (_, i) => `n${i}`).join('\n');
+  const t0 = Date.now();
+  const r = fromText(huge);
+  assert.equal(r.ok, false);
+  assert.match(r.errors.join('\n'), /More than 64/);
+  assert.ok(Date.now() - t0 < 500);
+});
+
+test('fromJSON refuses entries that are not a list', () => {
+  const json = toJSON(defaultLibrary());
+  for (const entries of ['abc', 5, { a: 1 }]) {
+    const r = fromJSON({ ...json, entries });
+    assert.equal(r.ok, false);
+    assert.match(r.error, /no entries list/);
+  }
+  const many = fromJSON({ ...json, entries: Array.from({ length: 200000 }, (_, i) => ({ id: 1, name: `n${i}` })) });
+  assert.equal(many.ok, false);
+  assert.match(many.error, /More than 64/);
 });
