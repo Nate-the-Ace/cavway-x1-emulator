@@ -206,7 +206,7 @@ export class X1 {
 
   // The Measure button or a laser trigger. Returns the live packet to stream,
   // or null. Blank values follow a gentle random walk.
-  measure({ splay = false, flag = Flag.none, distance = null, azimuth = null, inclination = null } = {}) {
+  measure({ splay = false, flag = Flag.none, distance = null, azimuth = null, inclination = null, err = null, scan = false } = {}) {
     if (this.firmware.state !== 'app' || this.booting) return null;
     const r = this.rng;
     const w = this.walk;
@@ -221,12 +221,14 @@ export class X1 {
       inclination: inclination ?? (splay ? (r() - 0.5) * 60 : w.inc),
       splay,
       cali: this.cali,
+      scan,
       flag,
       absG: 1 + (r() - 0.5) * 0.004,
       absM: 48 + (r() - 0.5) * 0.6,
       dip: 60 + (r() - 0.5) * 0.8,
       roll: (r() - 0.5) * 20,
       noise: Math.round(r() * 30),
+      err,
     });
     this.laser = false;
     const stored = this.memory.addShot(record);
