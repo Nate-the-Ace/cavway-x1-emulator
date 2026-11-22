@@ -99,3 +99,30 @@ time; two panels would both answer.
 | `background.js` | toolbar click opens the side panel |
 | `dev/` | harness server, chrome stub |
 | `test/` | `node --test` suites |
+
+## Front face (UI model)
+
+The panel's "Front face" card is a behavioral model of the X1's five buttons and
+screen, written from the Rev C manual (firmware 1.1.6) and the 1.1.7 changelog.
+Shots taken on it are stored in the emulated X1 and stream to a connected host
+like the Measure button does.
+
+Keys: Space = DIST, arrow keys = `<` `>`, M = M, Esc/Backspace = CLR. Hold DIST
+2 s for a delayed shot (set the delay in Options), hold DIST+M or `>` (per the
+Scan option) for scan mode, hold CLR 2 s to power off. The azimuth, inclination
+and distance boxes under the screen aim the virtual instrument; "Force ACC ERR"
+makes shots report an accuracy error.
+
+Modelled: power and idle off, laser and shot, marks, leg detection (the third
+close shot), `ACC ERR`, result pages, memory mode, the menus in the manual, scan
+mode, on-device calibration. Not modelled: the lock chord (CLR + `>`), the
+1.1.7 shot menu (delete shot, change mark), the boot-mode screen, and
+persistence of UI settings across panel reloads. "Reset Statistic" only beeps,
+and resetting a calibration group with `>` leaves its shots in memory.
+
+Guessed, not measured: close-shot tolerances (2°, 2% distance), scan settle
+times, the scan flag bit (bit 6 of the flag byte), the canned calibration report,
+the hardware, BLE and battery values on the Information page, and the screen
+layout (a 21x8 text grid, not the real pixels). A later phase will check these
+against the real firmware. The BLE link and the proposed callout and name
+features are not built yet.
