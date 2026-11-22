@@ -147,3 +147,96 @@ test('a write that fails is reported', async () => {
   assert.equal(r.ok, false);
   assert.match(r.error, /port closed/);
 });
+
+test('a short or malformed read-back is an error, not zeros', async () => {
+  const m = fresh();
+  const lib = defaultLibrary();
+  const shortRead = async (addr, len) => (await m.readFn(addr, len)).slice(0, len - 1);
+  const r = await writeLibrary(lib, { writeFn: m.writeFn, readFn: shortRead, baseAddr: BASE });
+  assert.equal(r.ok, false);
+  assert.match(r.error, /returned \d+ bytes, expected/);
+  const wide = async (addr, len) => Array.from(await m.readFn(addr, len), (b) => (b === 0 ? 256 : b));
+  const r2 = await readLibrary(wide, BASE);
+  assert.equal(r2.ok, false);
+  assert.match(r2.error, /not a byte/);
+  const rejecting = await readLibrary(async () => { throw new Error('port closed'); }, BASE);
+  assert.match(rejecting.error, /port closed/);
+  const weird = await readLibrary(async () => { throw null; }, BASE);
+  assert.equal(weird.ok, false);
+  assert.equal(typeof weird.error, 'string');
+  const str = await writeLibrary(lib, { writeFn: async () => { throw 'boom'; }, readFn: m.readFn, baseAddr: BASE });
+  assert.equal(str.error, 'boom');
+});
+
+test('the invalidating write is read back before any data goes in', async () => {
+  const m = fresh();
+  await writeLibrary(defaultLibrary(), { writeFn: m.writeFn, readFn: m.readFn, baseAddr: BASE });
+  const ignoresZeros = async (addr, data, why) => { if (why !== 'invalidate') await m.writeFn(addr, data, why); };
+  const before = m.writes.length;
+  const r = await writeLibrary(defaultLibrary(), { writeFn: ignoresZeros, readFn: m.readFn, baseAddr: BASE });
+  assert.equal(r.ok, false);
+  assert.equal(r.stage, 'invalidate');
+  assert.match(r.error, /did not store the invalidating write/);
+  assert.equal(m.writes.length, before, 'no data was written after a failed invalidate');
+});
+
+test('a failure says how far the send got', async () => {
+  const lib = defaultLibrary();
+  const stopAt = async (why) => {
+    const m = fresh();
+    const writeFn = async (addr, data, w) => { if (w === why) throw new Error('lost'); await m.writeFn(addr, data, w); };
+    return writeLibrary(lib, { writeFn, readFn: m.readFn, baseAddr: BASE });
+  };
+  const bad = await writeLibrary({ ...emptyLibrary(), nextId: 0 }, { writeFn: async () => {}, readFn: async () => new Uint8Array(0), baseAddr: BASE });
+  assert.deepEqual([bad.stage, bad.deviceList], ['plan', 'unchanged']);
+  const inv = await stopAt('invalidate');
+  assert.deepEqual([inv.stage, inv.deviceList], ['invalidate', 'unknown']);
+  const data = await stopAt('data');
+  assert.deepEqual([data.stage, data.deviceList], ['data', 'invalid']);
+  const commit = await stopAt('commit');
+  assert.deepEqual([commit.stage, commit.deviceList], ['commit', 'unknown']);
+});
+
+test('a torn write of the magic never reads as a valid list', async () => {
+  for (const tornStep of ['invalidate', 'commit']) {
+    for (let applied = 0; applied < 4; applied++) {
+      const m = fresh();
+      await writeLibrary(defaultLibrary(), { writeFn: m.writeFn, readFn: m.readFn, baseAddr: BASE });
+      const torn = async (addr, data, why) => {
+        if (why === tornStep) { m.bytes.set(data.slice(0, applied), addr); throw new Error('power lost mid-write'); }
+        await m.writeFn(addr, data, why);
+      };
+      const r = await writeLibrary(defaultLibrary(), { writeFn: torn, readFn: m.readFn, baseAddr: BASE });
+      assert.equal(r.ok, false);
+      const back = await readLibrary(m.readFn, BASE);
+      if (tornStep === 'commit') assert.equal(back.ok, false, `commit torn after ${applied} bytes`);
+      if (tornStep === 'invalidate') assert.equal(typeof back.ok, 'boolean');
+    }
+  }
+});
+
+test('a read or write that never finishes times out', async () => {
+  const never = () => new Promise(() => {});
+  const r = await readLibrary(never, BASE, { timeoutMs: 20 });
+  assert.equal(r.ok, false);
+  assert.match(r.error, /Timed out/);
+  const w = await writeLibrary(defaultLibrary(), { writeFn: never, readFn: never, baseAddr: BASE, timeoutMs: 20 });
+  assert.equal(w.ok, false);
+  assert.match(w.error, /Timed out/);
+});
+
+test('planReads reaches the top of memory exactly', () => {
+  assert.doesNotThrow(() => planReads(0xff00, 0x100));
+  assert.throws(() => planReads(0xff00, 0x101), RangeError);
+});
+
+test('readLibrary near the top of memory and with a bad count', async () => {
+  const bytes = new Uint8Array(0x10000).fill(0xff);
+  const readFn = (a, l) => bytes.slice(a, a + l);
+  assert.equal((await readLibrary(readFn, 0xfff8)).ok, false, 'not even a header fits');
+  bytes.set(encodeBlock(defaultLibrary()), BASE);
+  bytes[BASE + 5] = 200;
+  const r = await readLibrary(readFn, BASE);
+  assert.equal(r.ok, false);
+  assert.match(r.error, /Too many entries/);
+});

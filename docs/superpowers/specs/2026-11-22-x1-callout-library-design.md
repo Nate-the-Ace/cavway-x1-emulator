@@ -66,7 +66,7 @@ All fields are bytes, multi-byte values little-endian.
 
 ### Writing safely
 
-Writes are at most about 120 bytes each (the length field is one byte). Order:
+Writes are at most 250 bytes each (the length field is one byte); the library uses 120 by default. Order:
 write zeros over the magic first (the block becomes invalid), then the entries
 and CRC, then the magic last. A write interrupted at any point leaves an invalid
 block, never a half-new list. After writing, read the block back and compare.
@@ -86,8 +86,12 @@ import it later.
   `move(id, toIndex)`. Each returns a new library with the revision bumped and
   reports problems (empty, too long, duplicate, over 64, bad characters).
 - Block: `encodeBlock(lib)` and `decodeBlock(bytes)` returning `{ ok, lib, error }`.
-- Transfer: `planWrites(block, baseAddr, chunk)` giving the ordered `0x3e` writes
-  above, and `readBack(plan)` for the read commands and the compare.
+- Transfer: `planWrites(block, baseAddr, { chunk })` giving the ordered `0x3e` writes
+  above, `planReads`, and async `writeLibrary` and `readLibrary` that take injected
+  `writeFn(addr, bytes, why)` and `readFn(addr, length)`. `writeLibrary` reads the
+  invalidating write back before sending data, rejects short or non-byte replies, times
+  out a stuck call, and on failure says how far it got (`stage`) and what the device
+  holds (`deviceList`: `unchanged`, `invalid` or `unknown`).
 - Files: JSON (`{ version, revision, entries: [{ id, name }] }`) for saving and
   sharing on the computer, and plain text (one name per line) for quick edits;
   importing text into an existing library keeps the ids of names that match.
