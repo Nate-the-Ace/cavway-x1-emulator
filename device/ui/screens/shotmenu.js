@@ -29,9 +29,10 @@ export function shotMenu({ ui, index, parent }) {
     },
     {
       label: 'Mark',
-      value: (u) => MARKS[(rec(u)[1] >> 1) & 7],
+      value: (u) => (rec(u) ? MARKS[(rec(u)[1] >> 1) & 7] : ''),
       adjust: (u) => {
         const r = rec(u);
+        if (!r) return;
         const next = MARK_CYCLE[(MARK_CYCLE.indexOf((r[1] >> 1) & 7) + 1) % MARK_CYCLE.length];
         r[1] = (r[1] & ~0x0e) | (next << 1);
       },
@@ -43,6 +44,8 @@ export function shotMenu({ ui, index, parent }) {
       enter: (u, self) => new ConfirmScreen(
         ['', 'Delete shot?', ' The last one'],
         (u2) => {
+          // Another source (the host) may have added a shot since the menu opened.
+          if (index !== u2.x1.memory.shots.length - 1) { u2.beep('long'); u2.resume(self); return; }
           u2.x1.memory.shots.pop();
           u2.annotations.drop(index);
           u2.sent.delete(index);

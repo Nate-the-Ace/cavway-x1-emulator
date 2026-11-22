@@ -58,6 +58,7 @@ export class MeasureScreen {
         else ui.open('clearUnsentFromMeasure');
       } else if (b === 'm' && ui.proposed) {
         if (armed) {
+          this.dueAt = null; // a pending delayed shot is cancelled while picking
           ui.go(new PickerScreen({
             onPick: (u, code) => { this.tag = code; u.resume(this); },
             onCancel: (u) => u.resume(this),
@@ -99,8 +100,8 @@ export class MeasureScreen {
       '',
       lr('DIST', fmtDistPlaceholder(s.distUnit)),
     ];
-    if (this.dueAt !== null) rows[6] = `Shot in ${Math.ceil((this.dueAt - ui.now()) / 1000)}s`;
-    else if (this.tag) rows[6] = `Tag: ${calloutLabel(ui.content.callouts, this.tag)}`;
+    if (this.tag) rows[6] = `Tag: ${calloutLabel(ui.content.callouts, this.tag)}`;
+    if (this.dueAt !== null) rows[7] = `Shot in ${Math.ceil((this.dueAt - ui.now()) / 1000)}s`;
     return scene(rows);
   }
 

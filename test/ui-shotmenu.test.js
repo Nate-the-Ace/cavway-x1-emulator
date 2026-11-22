@@ -156,3 +156,42 @@ test('stock memory mode: long M does nothing', () => {
   r.hold('m', 2100);
   assert.equal(r.name(), 'MemoryScreen');
 });
+
+test('Delete shot is refused when another shot appeared while the menu was open', () => {
+  const r = prop();
+  shoot(r);
+  r.hold('m', 1000);
+  for (let i = 0; i < 3; i++) r.tap('right');
+  assert.match(r.text(), /> Delete shot/);
+  r.ui.instrument.fire({}); // e.g. a host trigger
+  r.ui.annotations.setName(0, 'KEEP');
+  r.tap('m');
+  r.tap('m'); // confirm
+  assert.equal(r.x1.memory.shots.length, 2, 'nothing was deleted');
+  assert.equal(r.ui.annotations.name(0), 'KEEP');
+  assert.deepEqual(r.ui.takeBeeps().slice(-1), ['long']);
+});
+
+test('picking a callout cancels a pending delayed shot', () => {
+  const r = prop();
+  r.ui.settings.shotDelay = 2;
+  r.tap('dist'); r.tap('dist');
+  r.hold('dist', 2000);
+  assert.match(r.text(), /Shot in 2s/);
+  r.hold('m', 1000);
+  r.tap('m'); r.tap('m');
+  r.run(5000);
+  assert.equal(r.x1.memory.shots.length, 0, 'the countdown was cancelled');
+  assert.match(r.text(), /Tag: Drip/);
+});
+
+test('the pending tag stays visible during a delayed-shot countdown', () => {
+  const r = prop();
+  r.ui.settings.shotDelay = 2;
+  r.tap('dist'); r.tap('dist');
+  r.hold('m', 1000);
+  r.tap('m'); r.tap('m');
+  r.hold('dist', 2000);
+  assert.match(r.text(), /Tag: Drip/);
+  assert.match(r.text(), /Shot in 2s/);
+});
