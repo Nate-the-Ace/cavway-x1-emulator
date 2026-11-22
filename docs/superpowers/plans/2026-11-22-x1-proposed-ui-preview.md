@@ -1,5 +1,7 @@
 # Proposed X1 UI Preview Implementation Plan
 
+> **Superseded in part:** the callout menu became a single flat list (no categories, no Recent) after this plan was executed; see the spec.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers-extended-cc:subagent-driven-development (recommended) or superpowers-extended-cc:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Add a "proposed" firmware profile to the emulator's front face (callout picker, station-name editor, a both-arrows button), plus tools to judge it: a press counter, scripted scenarios compared against stock, and an editable callout list.

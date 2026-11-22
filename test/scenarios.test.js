@@ -34,7 +34,10 @@ test('tag 10 features: hand-traced first three tasks', () => {
   assert.equal(stock.marks, 10);
   assert.deepEqual(stock.tasks.slice(0, 2).map((t) => t.taps), [4, 3]);
   const prop = runScenario(sc, PROPOSED);
-  assert.deepEqual(prop.tasks.slice(0, 3).map((t) => [t.taps, t.longs]), [[5, 1], [7, 1], [8, 1]]);
+  assert.deepEqual(prop.tasks.slice(0, 3).map((t) => [t.taps, t.longs]), [[6, 1], [4, 1], [3, 1]]);
+  // wake 1, then per feature: arm + take + picker taps (Drip 3, Squeeze 2, Lead 1)
+  assert.equal(prop.totals.taps, 1 + 4 * 5 + 3 * 4 + 3 * 3);
+  assert.equal(prop.totals.taps, 42);
   assert.equal(prop.totals.longs, 10);
   assert.equal(prop.tags, 10);
   assert.equal(prop.marks, 0);
@@ -59,8 +62,18 @@ test('runs are deterministic', () => {
 
 test('custom content is used and a missing callout is a clear error', () => {
   const sc = byId('tag-features');
-  const content = { callouts: parseCallouts('Water: Splash').categories, namePrefix: 'S', nameFirst: 1 };
-  assert.throws(() => runScenario(sc, PROPOSED, { content }), /No callout Water > Drip/);
+  const content = { callouts: parseCallouts('Splash').items, namePrefix: 'S', nameFirst: 1 };
+  assert.throws(() => runScenario(sc, PROPOSED, { content }), /No callout Drip/);
+});
+
+test('a callout step takes a name string and an optional via', () => {
+  const run = (step) => runScenario({ id: 't', name: 't', description: '', variants: { stock: () => [], proposed: () => [{ tap: 'dist' }, { tap: 'dist' }, step, { take: true }] } }, PROPOSED);
+  const m = run({ callout: 'Drip' });
+  assert.equal(m.tags, 1);
+  assert.equal(m.totals.longs, 1);
+  const b = run({ callout: 'Drip', via: 'both' });
+  assert.equal(b.tags, 1);
+  assert.equal(b.totals.chords, 1);
 });
 
 test('both-arrows step is counted as one chord', () => {
@@ -106,14 +119,14 @@ test('an unknown profile is an error', () => {
 test('callout lookup matches whole labels', () => {
   const sc = byId('tag-features');
   const content = {
-    callouts: parseCallouts('Water: Drippy, Drip, Pool\nPassage: Squeeze\nHazard: Loose').categories,
+    callouts: parseCallouts('Lead\nSqueeze\nDrippy\nDrip\nPool').items,
     namePrefix: 'S', nameFirst: 1,
   };
   const r = runScenario(sc, PROPOSED, { content });
   assert.equal(r.tags, 10);
   const first = r.tasks[0];
-  // wake, arm, M (Water), '>' (Drip is below Drippy), M, take
-  assert.equal(first.taps, 6);
+  // wake, arm, '>' x3 (Drip is below Drippy), M, take
+  assert.equal(first.taps, 7);
 });
 
 test('tag 10 features with the B button: same picker taps, a chord instead of a long press', () => {
@@ -121,7 +134,11 @@ test('tag 10 features with the B button: same picker taps, a chord instead of a 
   const stock = runScenario(sc, STOCK);
   assert.equal(stock.totals.taps, 4 + 9 * 3);
   const prop = runScenario(sc, PROPOSED);
-  assert.deepEqual(prop.tasks.slice(0, 3).map((t) => [t.taps, t.longs, t.chords]), [[5, 0, 1], [7, 0, 1], [8, 0, 1]]);
+  assert.deepEqual(prop.tasks.slice(0, 3).map((t) => [t.taps, t.longs, t.chords]), [[6, 0, 1], [4, 0, 1], [3, 0, 1]]);
+  assert.equal(prop.totals.taps, 42);
+  assert.equal(prop.totals.chords, 10);
+  assert.equal(prop.totals.holdMs, 0);
+  assert.equal(prop.tags, 10);
   assert.equal(prop.totals.longs, 0);
   assert.equal(prop.totals.chords, 10);
   assert.equal(prop.totals.holdMs, 0);

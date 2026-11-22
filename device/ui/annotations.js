@@ -1,5 +1,4 @@
 // Per-shot callout tags and station names. They live in the UI model only.
-export const MAX_RECENT = 3;
 export const MAX_NAME_LEN = 8;
 
 // The previous name with its trailing number incremented (A12 to A13, S09 to S10),
@@ -18,7 +17,6 @@ export class Annotations {
   clear() {
     this.tags = new Map(); // shot index -> callout code
     this.names = new Map(); // shot index -> station name
-    this.recent = []; // callout codes, most recent first
     this.lastName = null;
   }
 
@@ -27,7 +25,6 @@ export class Annotations {
   setTag(i, code) {
     if (!code) { this.tags.delete(i); return; }
     this.tags.set(i, code);
-    this.recent = [code, ...this.recent.filter((c) => c !== code)].slice(0, MAX_RECENT);
   }
 
   name(i) { return this.names.get(i) ?? ''; }
@@ -47,7 +44,6 @@ export class Annotations {
       const next = fn(code);
       if (next) this.tags.set(i, next); else this.tags.delete(i);
     }
-    this.recent = [...new Set(this.recent.map(fn).filter(Boolean))];
   }
 
   suggestName(prefix, first) { return nextName(this.lastName, prefix, first); }

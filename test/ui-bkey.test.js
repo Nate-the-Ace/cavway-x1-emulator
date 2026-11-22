@@ -2,7 +2,6 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { rig } from './ui-helpers.js';
 import { PROPOSED } from '../device/ui/profile.js';
-import { calloutCode } from '../device/ui/callouts.js';
 
 const prop = () => rig({ ui: { profile: PROPOSED } });
 const both = (r) => { r.ui.press('left'); r.ui.press('right'); r.run(50); r.ui.release('left'); r.ui.release('right'); };
@@ -19,11 +18,11 @@ test('proposed, armed: B opens the picker and the pick tags the next shot', () =
   r.tap('dist'); r.tap('dist');
   both(r);
   assert.equal(r.name(), 'PickerScreen');
-  r.tap('m'); r.tap('m'); // Water, Drip
+  r.tap('right'); r.tap('right'); r.tap('m'); // Drip
   assert.equal(r.name(), 'MeasureScreen');
   assert.match(r.text(), /Tag: Drip/);
   r.tap('dist');
-  assert.equal(r.ui.annotations.tag(0), calloutCode(0, 0));
+  assert.equal(r.ui.annotations.tag(0), 3);
 });
 
 test('proposed, after a shot: B opens the picker straight away and tags that shot', () => {
@@ -31,9 +30,9 @@ test('proposed, after a shot: B opens the picker straight away and tags that sho
   r.tap('dist'); r.tap('dist'); r.tap('dist');
   both(r);
   assert.equal(r.name(), 'PickerScreen');
-  r.tap('right'); r.tap('right'); r.tap('m'); r.tap('m'); // Passage, Squeeze
+  r.tap('right'); r.tap('m'); // Squeeze
   assert.equal(r.name(), 'MeasureScreen');
-  assert.equal(r.ui.annotations.tag(0), calloutCode(2, 0));
+  assert.equal(r.ui.annotations.tag(0), 2);
   assert.match(r.text(), /Tag: Squeeze/);
 });
 
@@ -58,9 +57,9 @@ test('proposed, memory mode: B tags the shot under the cursor', () => {
   r.tap('right'); // older shot (index 0)
   both(r);
   assert.equal(r.name(), 'PickerScreen');
-  r.tap('m'); r.tap('m');
+  r.tap('right'); r.tap('right'); r.tap('m'); // Drip
   assert.equal(r.name(), 'MemoryScreen');
-  assert.equal(r.ui.annotations.tag(0), calloutCode(0, 0));
+  assert.equal(r.ui.annotations.tag(0), 3);
   assert.equal(r.ui.annotations.tag(1), 0);
 });
 

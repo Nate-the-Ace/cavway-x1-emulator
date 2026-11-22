@@ -23,12 +23,11 @@ test('armed: long M opens the picker; the pick tags the next shot', () => {
   r.tap('dist'); r.tap('dist');
   r.hold('m', 1000);
   assert.equal(r.name(), 'PickerScreen');
-  r.tap('m'); // Water
-  r.tap('m'); // Drip
+  r.tap('right'); r.tap('right'); r.tap('m'); // Drip
   assert.equal(r.name(), 'MeasureScreen');
   assert.match(r.text(), /Tag: Drip/);
   r.tap('dist'); // take
-  assert.equal(r.ui.annotations.tag(0), 1);
+  assert.equal(r.ui.annotations.tag(0), 3);
   assert.match(r.text(), /Tag: Drip/);
   r.tap('dist'); // arm again
   assert.doesNotMatch(r.text(), /Tag:/, 'the pending tag cleared');
@@ -77,12 +76,10 @@ test('after a shot: Callout tags that shot; cancel returns to the shot menu', ()
   assert.equal(r.name(), 'ListScreen');
   assert.match(r.text(), /> Callout/);
   r.tap('m');
-  r.tap('right'); // Calcite
-  r.tap('m');
-  r.tap('m'); // Stalag
+  r.tap('right'); r.tap('right'); r.tap('right'); r.tap('right'); r.tap('m'); // Pool
   assert.equal(r.name(), 'MeasureScreen');
-  assert.equal(r.ui.annotations.tag(0), 9);
-  assert.match(r.text(), /Tag: Stalag/);
+  assert.equal(r.ui.annotations.tag(0), 5);
+  assert.match(r.text(), /Tag: Pool/);
 });
 
 test('shot menu: Mark cycles the stored mark', () => {
@@ -139,7 +136,7 @@ test('memory mode: long M opens the shot menu for the shot under the cursor', ()
 test('memory mode: tagged shots show an underscore and the tag on the last detail page', () => {
   const r = prop();
   r.ui.instrument.fire({});
-  r.ui.annotations.setTag(0, 1);
+  r.ui.annotations.setTag(0, 3);
   r.tap('dist');
   r.tap('right');
   assert.match(r.text(), /\*_/);
@@ -179,7 +176,7 @@ test('picking a callout cancels a pending delayed shot', () => {
   r.hold('dist', 2000);
   assert.match(r.text(), /Shot in 2s/);
   r.hold('m', 1000);
-  r.tap('m'); r.tap('m');
+  r.tap('right'); r.tap('right'); r.tap('m');
   r.run(5000);
   assert.equal(r.x1.memory.shots.length, 0, 'the countdown was cancelled');
   assert.match(r.text(), /Tag: Drip/);
@@ -190,7 +187,7 @@ test('the pending tag stays visible during a delayed-shot countdown', () => {
   r.ui.settings.shotDelay = 2;
   r.tap('dist'); r.tap('dist');
   r.hold('m', 1000);
-  r.tap('m'); r.tap('m');
+  r.tap('right'); r.tap('right'); r.tap('m');
   r.hold('dist', 2000);
   assert.match(r.text(), /Tag: Drip/);
   assert.match(r.text(), /Shot in 2s/);

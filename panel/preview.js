@@ -2,7 +2,7 @@
 // scenario comparison and the callout editor.
 import { STOCK, PROPOSED } from '../device/ui/profile.js';
 import { InputRecorder, presses } from '../device/ui/recorder.js';
-import { parseCallouts, DEFAULT_CALLOUT_TEXT, calloutFromCode, findCallout } from '../device/ui/callouts.js';
+import { parseCallouts, DEFAULT_CALLOUT_TEXT, calloutLabel, findCallout } from '../device/ui/callouts.js';
 import { SCENARIOS, compare, toMarkdown, estimateMs } from '../device/ui/scenarios.js';
 
 const el = (tag, text, cls) => {
@@ -32,6 +32,8 @@ export async function mountPreview({ ui, root, store, note }) {
 
   // ---- callout content -----------------------------------------------------
   const content = saved.content ?? { text: DEFAULT_CALLOUT_TEXT, prefix: 'S', first: 1 };
+  // Content saved by an older two-level menu no longer parses: fall back to the default list.
+  if (!parseCallouts(content.text).ok) content.text = DEFAULT_CALLOUT_TEXT;
   $('calloutText').value = content.text;
   $('namePrefix').value = content.prefix;
   $('nameFirst').value = content.first;
@@ -42,13 +44,13 @@ export async function mountPreview({ ui, root, store, note }) {
     if (!r.ok) return false;
     const prefix = $('namePrefix').value.trim() || 'S';
     const first = Math.max(0, Math.floor(Number($('nameFirst').value) || 0));
-    // Callouts are stored as positions: follow items to their new place, drop removed ones.
+    // Callouts are stored as positions: follow names to their new place, drop removed ones.
     const old = ui.content.callouts;
     ui.annotations.remapTags((code) => {
-      const info = calloutFromCode(old, code);
-      return info ? findCallout(r.categories, info.category, info.item) : 0;
+      const label = calloutLabel(old, code);
+      return label ? findCallout(r.items, label) : 0;
     });
-    ui.content = { callouts: r.categories, namePrefix: prefix, nameFirst: first };
+    ui.content = { callouts: r.items, namePrefix: prefix, nameFirst: first };
     store.set({ content: { text, prefix, first } });
     note('Callout menu applied');
     return true;

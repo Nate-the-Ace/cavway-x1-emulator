@@ -4,7 +4,7 @@ import { rig } from './ui-helpers.js';
 import { PROPOSED } from '../device/ui/profile.js';
 import { PickerScreen } from '../device/ui/screens/picker.js';
 import { NameEditScreen } from '../device/ui/screens/nameedit.js';
-import { calloutCode, parseCallouts } from '../device/ui/callouts.js';
+import { parseCallouts } from '../device/ui/callouts.js';
 
 function picker(r) {
   const out = { picked: [], cancelled: 0 };
@@ -13,72 +13,71 @@ function picker(r) {
   return out;
 }
 
-test('level one lists categories; M opens a category; M picks an item', () => {
+const withItems = (text) => ({ callouts: parseCallouts(text).items, namePrefix: 'S', nameFirst: 1 });
+
+test('the picker is one flat list; > moves down, M picks by position', () => {
   const r = rig({ ui: { profile: PROPOSED } });
   const out = picker(r);
   assert.match(r.text(), /CALLOUT/);
-  assert.match(r.text(), /> Water/);
-  assert.match(r.text(), /Calcite/);
-  assert.doesNotMatch(r.text(), /Recent/);
+  assert.match(r.text(), /> Lead/);
+  assert.match(r.text(), /Squeeze/);
+  assert.match(r.text(), /< >:Move M:Select/);
+  assert.match(r.text(), /CLR:Cancel/);
+  assert.doesNotMatch(r.text(), /Recent|Water/);
   r.tap('right');
   r.tap('right');
-  assert.match(r.text(), /> Passage/);
-  r.tap('m');
-  assert.match(r.text(), /^Passage/m);
-  assert.match(r.text(), /> Squeeze/);
+  assert.match(r.text(), /> Drip/);
   r.ui.takeBeeps();
   r.tap('m');
-  assert.deepEqual(out.picked, [calloutCode(2, 0)]);
+  assert.deepEqual(out.picked, [3]);
   assert.deepEqual(r.ui.takeBeeps(), ['short']);
 });
 
-test('CLR goes back a level, then cancels', () => {
+test('CLR cancels', () => {
   const r = rig({ ui: { profile: PROPOSED } });
   const out = picker(r);
   r.tap('right');
-  r.tap('right');
-  r.tap('m');
-  r.tap('clr');
-  assert.match(r.text(), /> Passage/, 'cursor restored');
-  assert.equal(out.cancelled, 0);
   r.tap('clr');
   assert.equal(out.cancelled, 1);
+  assert.deepEqual(out.picked, []);
 });
 
 test('movement clamps at both ends', () => {
   const r = rig({ ui: { profile: PROPOSED } });
   picker(r);
   r.tap('left');
-  assert.match(r.text(), /> Water/);
-  for (let i = 0; i < 20; i++) r.tap('right');
-  assert.match(r.text(), /> Life/);
+  assert.match(r.text(), /> Lead/);
+  for (let i = 0; i < 30; i++) r.tap('right');
+  assert.match(r.text(), /> Hazard/);
 });
 
-test('Recent comes first when there are recent callouts', () => {
+test('the list scrolls past five rows to the last item and back up', () => {
   const r = rig({ ui: { profile: PROPOSED } });
-  r.ui.annotations.setTag(0, 1);
-  r.ui.annotations.setTag(1, 17);
   const out = picker(r);
-  assert.match(r.text(), /> Recent/);
+  assert.doesNotMatch(r.text(), /Sump/, 'only five rows visible');
+  for (let i = 0; i < 15; i++) r.tap('right');
+  assert.match(r.text(), /> Hazard/);
+  assert.match(r.text(), /Bones/);
+  assert.doesNotMatch(r.text(), /Lead/);
+  for (let i = 0; i < 15; i++) r.tap('left');
+  assert.match(r.text(), /> Lead/);
+  assert.match(r.text(), /Pool/);
+  assert.doesNotMatch(r.text(), /Hazard/);
+  for (let i = 0; i < 15; i++) r.tap('right');
   r.tap('m');
-  assert.match(r.text(), /^Recent/m);
-  assert.match(r.text(), /> Squeeze/, 'most recent first');
-  assert.match(r.text(), /Drip/);
+  assert.deepEqual(out.picked, [16]);
+});
+
+test('an empty list shows No callouts and M does nothing', () => {
+  const r = rig({ ui: { profile: PROPOSED, content: withItems('x') } });
+  const out = picker(r);
+  r.ui.content = { callouts: [], namePrefix: 'S', nameFirst: 1 };
+  assert.match(r.text(), /No callouts/);
   r.tap('right');
   r.tap('m');
-  assert.deepEqual(out.picked, [1]);
-});
-
-test('a long item list scrolls', () => {
-  const content = { callouts: parseCallouts('Big: i1, i2, i3, i4, i5, i6, i7, i8').categories, namePrefix: 'S', nameFirst: 1 };
-  const r = rig({ ui: { profile: PROPOSED, content } });
-  picker(r);
-  r.tap('m');
-  assert.match(r.text(), /> i1/);
-  assert.doesNotMatch(r.text(), /i6/);
-  for (let i = 0; i < 7; i++) r.tap('right');
-  assert.match(r.text(), /> i8/);
-  assert.doesNotMatch(r.text(), /i1\b/);
+  assert.deepEqual(out.picked, []);
+  r.tap('clr');
+  assert.equal(out.cancelled, 1);
 });
 
 function nameEditor(r, initial = 'S1') {
@@ -140,21 +139,15 @@ test('name editor: at most 8 characters', () => {
 
 test('the picker survives the callout list changing while open', () => {
   const r = rig({ ui: { profile: PROPOSED } });
-  picker(r);
-  r.tap('right'); r.tap('right'); r.tap('m'); // inside Passage
-  r.ui.content = { callouts: parseCallouts('Only: one').categories, namePrefix: 'S', nameFirst: 1 };
+  const out = picker(r);
+  for (let i = 0; i < 10; i++) r.tap('right');
+  r.ui.content = withItems('Only');
   assert.match(r.text(), /CALLOUT/);
   assert.match(r.text(), /> Only/);
   r.tap('right');
-  r.tap('right');
   assert.match(r.text(), /> Only/);
-});
-
-test('a recent callout whose label is gone is not listed', () => {
-  const r = rig({ ui: { profile: PROPOSED } });
-  r.ui.annotations.setTag(0, 60); // no such callout
-  picker(r);
-  assert.doesNotMatch(r.text(), /Recent/);
+  r.tap('m');
+  assert.deepEqual(out.picked, [1]);
 });
 
 test('name editor: an initial name longer than 8 characters is cut to 8', () => {

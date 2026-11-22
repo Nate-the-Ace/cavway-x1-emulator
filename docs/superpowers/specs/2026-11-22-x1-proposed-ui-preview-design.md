@@ -20,7 +20,7 @@ shim is dropped (an unfinished draft of it is left uncommitted in
    time, so flows can be compared by effort.
 3. **Scripted scenarios.** Replayable cave-trip scripts run on stock and on
    proposed, with a side-by-side result.
-4. **Editable menu content.** Change the callout categories and items and the
+4. **Editable menu content.** Change the callout list and the
    name prefix in the panel, without code changes.
 
 ## Non-goals
@@ -55,7 +55,7 @@ While both are held, neither arrow fires its own long press. No screen uses it
 yet in the stock profile. In the proposed profile B opens the callout picker: armed,
 it tags the next shot; after a shot or in memory mode it tags the shot on screen. It
 is counted by the press counter (as a two-button chord) and available to scenario
-scripts (`{ callout: [...], via: 'both' }`, used by "Tag 10 features (B button)").
+scripts (`{ callout: 'Drip', via: 'both' }`, used by "Tag 10 features (B button)").
 
 ### Long press thresholds
 
@@ -71,18 +71,18 @@ fire its own long press (so the chord still works).
   chosen callout applies to the shot that is about to be taken.
 - **After a shot** (result pages): long `M` opens the shot menu: Callout, Name,
   Mark, Delete shot. Callout and Name apply to that shot.
-- **Picker.** Level one lists "Recent" (the last three used, only when there
-  are some) and the categories. Level two lists the items. `<` `>` move
-  (clamped), `M` selects, `CLR` goes back a level or cancels.
-- **Capacity.** Up to 8 categories of up to 8 items, names up to 8 characters.
-  A callout is a number from 1 to 64 (category x 8 + item + 1).
+- **Picker.** One flat list of the most common feature callouts, in a fixed
+  order, with no categories and no Recent list. Five rows show at a time. `<` `>`
+  move (clamped), `M` selects, `CLR` cancels. Category names are not editable on
+  the device because there are none.
+- **Capacity.** Up to 64 callouts, names up to 12 characters, unique ignoring
+  case. A callout is its 1-based position in the list (code 1 is the first).
 - **Display.** The measure screen shows `Tag: <item>` on row 6 for a pending or
   taken shot. Memory mode marks tagged shots with `_` and shows `Tag:` on the
   last detail page, next to the mark.
 - **Default content** is an example, edited in the panel (below):
-  Water: Drip, Stream, Sump, Pool, Fall. Calcite: Stalag, Column, Straw,
-  Drapery. Passage: Squeeze, Crawl, Climb, Drop, Breakdn. Hazard: Loose, Bad air,
-  Deep. Survey: Entrance, Junction, Lead, Tie-in. Life: Bats, Bones, Roots.
+  Lead, Squeeze, Drip, Stream, Pool, Sump, Drop, Climb, Crawl, Breakdown,
+  Flowstone, Column, Straw, Bats, Bones, Hazard (most common first).
 
 ### Station name editor
 
@@ -121,9 +121,9 @@ thing, which is part of what is being compared):
 1. **Survey 10 stations.** Three close shots per leg; on proposed, also name
    each station (defaults accepted).
 2. **Tag 10 features.** Stock cycles the `Feature` mark; proposed picks
-   `Water > Drip` through the picker.
+   a callout from the list (rotating through Drip, Squeeze, Lead).
 3. **Survey with callouts.** Ten stations, each with one named station and one
-   callout of a different category, the realistic mix.
+   callout from the list, the realistic mix.
 
 The result table shows, for stock and proposed side by side: taps, long
 presses, total hold time, an estimated time (model: each tap 0.6 s including
@@ -133,18 +133,21 @@ discussion.
 
 ## Editable menu content
 
-The panel gets a callout editor: one line per category in the form
-`Category: item, item, item`, plus a name prefix and a first number. It
-validates (at most 8 categories and 8 items, names up to 8 characters, no empty
-names) and shows the errors; it applies on a valid edit and is saved in the
-extension's storage. Scenarios use the saved content.
+The panel gets a callout editor: one callout per line (commas also
+separate), plus a name prefix and a first number. It validates (at most 64
+callouts, names up to 12 characters, no duplicates ignoring case, no colons, no
+empty list) and shows the errors; it applies on a valid edit and is saved in the
+extension's storage. Scenarios use the saved content. Content saved by the earlier
+two-level menu no longer parses (a colon is rejected) and falls back to the
+default list. Editing keeps tags attached to the same names and drops tags whose
+name was removed.
 
 ## Architecture
 
 ```
 device/ui/profile.js        NEW: profile constants, per-profile long-press times
 device/ui/callouts.js       NEW: callout content: parse, validate, default list,
-                            code <-> category/item, recent list
+                            flat list, code = position
 device/ui/annotations.js    NEW: per-shot tags and names (Maps), name increment
 device/ui/screens/shotmenu.js, picker.js, nameedit.js   NEW screens
 device/ui/recorder.js       NEW: InputRecorder (counts, log, task markers)

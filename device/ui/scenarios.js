@@ -4,7 +4,6 @@ import { Ui } from './ui.js';
 import { InputRecorder } from './recorder.js';
 import { VirtualClock } from './virtual-clock.js';
 import { PROPOSED, STOCK, longMs } from './profile.js';
-import { calloutCode, calloutLabel } from './callouts.js';
 
 // ---- running -------------------------------------------------------------------
 function makeCtx(profile, content) {
@@ -60,25 +59,15 @@ function goto(ctx, label) {
   throw new Error(`Could not reach "${label}"`);
 }
 
-// Pick a callout, using the cheaper of the Recent list and the category path.
-function pick(ctx, [category, item]) {
-  const cats = ctx.ui.content.callouts;
-  const cat = cats.findIndex((c) => c.name === category);
-  const it = cat < 0 ? -1 : cats[cat].items.indexOf(item);
-  if (cat < 0 || it < 0) throw new Error(`No callout ${category} > ${item}`);
-  const code = calloutCode(cat, it);
-  const recent = ctx.ui.annotations.recent.filter((c) => calloutLabel(cats, c));
-  const rPos = recent.indexOf(code);
-  const catRow = (recent.length ? 1 : 0) + cat;
-  if (rPos >= 0 && rPos <= catRow + it) {
-    goto(ctx, 'Recent'); ctx.tap('m'); goto(ctx, item); ctx.tap('m');
-  } else {
-    goto(ctx, category); ctx.tap('m'); goto(ctx, item); ctx.tap('m');
-  }
+// Pick a callout from the flat list: go to its row, select it.
+function pick(ctx, name) {
+  if (!ctx.ui.content.callouts.includes(name)) throw new Error(`No callout ${name}`);
+  goto(ctx, name);
+  ctx.tap('m');
 }
 
 // via 'm' (default): hold M, then through the shot menu after a shot. via 'both': the B button.
-function callout(ctx, path, via = 'm') {
+function callout(ctx, name, via = 'm') {
   const wasArmed = isArmed(ctx.ui);
   if (!wasArmed && !hasResult(ctx.ui)) throw new Error('callout needs the measure screen');
   if (via === 'both') ctx.tapBoth();
@@ -86,7 +75,7 @@ function callout(ctx, path, via = 'm') {
     ctx.hold('m', longMs(ctx.profile, 'm'));
     if (!wasArmed) { goto(ctx, 'Callout'); ctx.tap('m'); }
   }
-  pick(ctx, path);
+  pick(ctx, name);
 }
 
 function nameStation(ctx) {
@@ -189,8 +178,8 @@ export function toMarkdown(comparisons, model = DEFAULT_TIME_MODEL) {
 // ---- built-in scenarios --------------------------------------------------------
 const STATIONS = 10;
 const stationPose = (i) => ({ az: (20 + i * 31) % 360, inc: (i % 5) * 3 - 6, dist: 3 + (i % 4) });
-const FEATURES = [['Water', 'Drip'], ['Passage', 'Squeeze'], ['Hazard', 'Loose']];
-const CALLOUT_CYCLE = [['Water', 'Drip'], ['Calcite', 'Straw'], ['Passage', 'Crawl'], ['Hazard', 'Loose']];
+const FEATURES = ['Drip', 'Squeeze', 'Lead'];
+const CALLOUT_CYCLE = ['Drip', 'Straw', 'Crawl', 'Lead'];
 
 export const SCENARIOS = [
   {

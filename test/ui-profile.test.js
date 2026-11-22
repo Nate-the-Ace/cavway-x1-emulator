@@ -156,11 +156,12 @@ test('setProfile powers off and clears annotations; resetState clears them too',
 
 test('content defaults to the default callouts and can be replaced', () => {
   const r = rig();
-  assert.equal(r.ui.content.callouts.length, 6);
-  const custom = { callouts: [{ name: 'X', items: ['a'] }], namePrefix: 'Q', nameFirst: 7 };
+  assert.equal(r.ui.content.callouts.length, 16);
+  assert.equal(r.ui.content.callouts[0], 'Lead');
+  const custom = { callouts: ['X', 'a'], namePrefix: 'Q', nameFirst: 7 };
   const r2 = rig({ ui: { content: custom } });
   assert.equal(r2.ui.content.namePrefix, 'Q');
-  assert.deepEqual(r2.ui.content.callouts, [{ name: 'X', items: ['a'] }]);
+  assert.deepEqual(r2.ui.content.callouts, ['X', 'a']);
 });
 
 test('arrows pressed far apart are not a pair', () => {

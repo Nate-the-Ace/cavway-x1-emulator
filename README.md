@@ -134,9 +134,9 @@ powers the X1 off and clears callouts and names. Tags and names live only in the
 UI model, not in shot records.
 
 Proposed flows:
-- **Callout.** With the laser armed, hold M for 1 s: pick a category, then an item
-  (`<` `>` move, `M` selects, `CLR` goes back). The next shot gets the callout. The
-  last three used callouts appear first under `Recent`.
+- **Callout.** With the laser armed, hold M for 1 s: a single list of the most
+  common cave feature callouts opens (`<` `>` scroll, `M` selects, `CLR` cancels). The
+  next shot gets the callout. There are no categories and no Recent list.
 - **Shot menu.** After a shot, or in memory mode, hold M for 1 s: Callout, Name, Mark,
   Delete shot (last shot only).
 - **Station name.** `<` `>` scroll 0-9, A-Z, `-`, `.` and `OK`, `M` adds the character,
@@ -153,11 +153,11 @@ Tools for judging the flows:
   with "Copy as text".
 - **Scenarios.** Replayable cave-trip scripts run on stock and proposed with exact
   press counts and a rough time estimate; "Copy as markdown" for sharing.
-- **Callout menu.** Edit categories and items (up to 8 by 8, names up to 8
-  characters), the name prefix and the first number.
+- **Callout menu.** Edit the one callout list (one name per line, most common
+  first, up to 64, names up to 12 characters), the name prefix and the first number.
 
 Tags and names are not kept across panel reloads (shots are). Editing the callout
-menu keeps existing tags attached to the same items and drops tags whose item was
+menu keeps existing tags attached to the same names and drops tags whose name was
 removed.
 
 Guessed: the 1 s long press for M, using a long M after a shot as the shot menu (the
