@@ -35,8 +35,10 @@ test('parseCallouts reports line-numbered errors', () => {
   assert.match(bad('Waterfalls: Drip'), /Line 1: "Waterfalls" is longer than 8/);
   assert.match(bad('Water: Waterfalls'), /Line 1: "Waterfalls" is longer than 8/);
   assert.match(bad('Water: a,b,c,d,e,f,g,h,i'), /Line 1: more than 8 items/);
-  assert.match(bad(Array.from({ length: 9 }, (_, i) => `C${i}: x`).join('\n')), /More than 8 categories/);
+  assert.match(bad(Array.from({ length: 9 }, (_, i) => `C${i}: x`).join('\n')), /Line 9: more than 8 categories/);
   assert.match(bad('Water: Drip\n\nBad'), /Line 3: expected/);
+  assert.match(bad('Water: a\nwater: b'), /Line 2: "water" is already a category/);
+  assert.equal(parseCallouts('Water: Drip\r\nLife: Bats\r\n').ok, true, 'CRLF is fine');
   assert.match(bad('   \n'), /Add at least one category/);
   assert.equal(parseCallouts('Water: Drip').ok, true);
   assert.deepEqual(parseCallouts('Water Drip').categories, []);

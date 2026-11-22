@@ -16,6 +16,7 @@ export const DEFAULT_CALLOUT_TEXT = [
 export function parseCallouts(text) {
   const errors = [];
   const categories = [];
+  const lineOf = []; // source line of each category
   String(text).split('\n').forEach((raw, idx) => {
     const line = raw.trim();
     if (!line) return;
@@ -25,6 +26,7 @@ export function parseCallouts(text) {
     const name = line.slice(0, colon).trim();
     const items = line.slice(colon + 1).split(',').map((s) => s.trim());
     if (!name) { errors.push(`Line ${n}: the category name is empty`); return; }
+    if (categories.some((c) => c.name.toLowerCase() === name.toLowerCase())) errors.push(`Line ${n}: "${name}" is already a category`);
     if (name.length > MAX_NAME) errors.push(`Line ${n}: "${name}" is longer than ${MAX_NAME} characters`);
     if (items.some((s) => s === '')) { errors.push(`Line ${n}: an item name is empty`); return; }
     if (items.length > MAX_ITEMS) errors.push(`Line ${n}: more than ${MAX_ITEMS} items`);
@@ -32,9 +34,10 @@ export function parseCallouts(text) {
       if (it.length > MAX_NAME) errors.push(`Line ${n}: "${it}" is longer than ${MAX_NAME} characters`);
     }
     categories.push({ name, items });
+    lineOf.push(n);
   });
   if (categories.length === 0 && errors.length === 0) errors.push('Add at least one category');
-  if (categories.length > MAX_CATEGORIES) errors.push(`More than ${MAX_CATEGORIES} categories`);
+  if (categories.length > MAX_CATEGORIES) errors.push(`Line ${lineOf[MAX_CATEGORIES]}: more than ${MAX_CATEGORIES} categories`);
   return { ok: errors.length === 0, categories: errors.length === 0 ? categories : [], errors };
 }
 
