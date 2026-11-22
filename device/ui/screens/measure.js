@@ -54,6 +54,11 @@ export class MeasureScreen {
       if (armed && s.scanEnable && s.scanTrigger === 'DIST+M') ui.open('scan');
       return;
     }
+    if (b === 'left+right') {
+      // Both arrows (the B button) open the callout picker in the proposed profile.
+      if (kind === 'tap' && ui.proposed) this._pick(ui);
+      return;
+    }
     if (kind === 'long') {
       if (b === 'dist' && armed) {
         if (s.shotDelay === 0) this.take(ui);
@@ -63,13 +68,8 @@ export class MeasureScreen {
         if (s.scanEnable && s.scanTrigger === '>') ui.open('scan');
         else ui.open('clearUnsentFromMeasure');
       } else if (b === 'm' && ui.proposed) {
-        if (armed) {
-          this.dueAt = null; // a pending delayed shot is cancelled while picking
-          ui.go(new PickerScreen({
-            onPick: (u, code) => { this.tag = code; u.resume(this); },
-            onCancel: (u) => u.resume(this),
-          }));
-        } else ui.go(shotMenu({ ui, index: this.result.index, parent: this }));
+        if (armed) this._pick(ui);
+        else ui.go(shotMenu({ ui, index: this.result.index, parent: this }));
       }
       return;
     }
@@ -88,6 +88,23 @@ export class MeasureScreen {
       ui.x1.laser = false;
       ui.open('home');
     }
+  }
+
+  // The callout picker: for the next shot when armed, or for the shot on screen.
+  _pick(ui) {
+    if (this.result === null) {
+      this.dueAt = null; // a pending delayed shot is cancelled while picking
+      ui.go(new PickerScreen({
+        onPick: (u, code) => { this.tag = code; u.resume(this); },
+        onCancel: (u) => u.resume(this),
+      }));
+      return;
+    }
+    const index = this.result.index;
+    ui.go(new PickerScreen({
+      onPick: (u, code) => { u.annotations.setTag(index, code); u.resume(this); },
+      onCancel: (u) => u.resume(this),
+    }));
   }
 
   tick(ui, t) {

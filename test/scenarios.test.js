@@ -115,3 +115,17 @@ test('callout lookup matches whole labels', () => {
   // wake, arm, M (Water), '>' (Drip is below Drippy), M, take
   assert.equal(first.taps, 6);
 });
+
+test('tag 10 features with the B button: same picker taps, a chord instead of a long press', () => {
+  const sc = byId('tag-features-b');
+  const stock = runScenario(sc, STOCK);
+  assert.equal(stock.totals.taps, 4 + 9 * 3);
+  const prop = runScenario(sc, PROPOSED);
+  assert.deepEqual(prop.tasks.slice(0, 3).map((t) => [t.taps, t.longs, t.chords]), [[5, 0, 1], [7, 0, 1], [8, 0, 1]]);
+  assert.equal(prop.totals.longs, 0);
+  assert.equal(prop.totals.chords, 10);
+  assert.equal(prop.totals.holdMs, 0);
+  assert.equal(prop.tags, 10);
+  const viaM = runScenario(byId('tag-features'), PROPOSED);
+  assert.ok(prop.totals.holdMs < viaM.totals.holdMs, 'no hold time with B');
+});

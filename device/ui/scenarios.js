@@ -77,11 +77,15 @@ function pick(ctx, [category, item]) {
   }
 }
 
-function callout(ctx, path) {
+// via 'm' (default): hold M, then through the shot menu after a shot. via 'both': the B button.
+function callout(ctx, path, via = 'm') {
   const wasArmed = isArmed(ctx.ui);
   if (!wasArmed && !hasResult(ctx.ui)) throw new Error('callout needs the measure screen');
-  ctx.hold('m', longMs(ctx.profile, 'm'));
-  if (!wasArmed) { goto(ctx, 'Callout'); ctx.tap('m'); }
+  if (via === 'both') ctx.tapBoth();
+  else {
+    ctx.hold('m', longMs(ctx.profile, 'm'));
+    if (!wasArmed) { goto(ctx, 'Callout'); ctx.tap('m'); }
+  }
   pick(ctx, path);
 }
 
@@ -107,7 +111,7 @@ const isMs = (v) => typeof v === 'number' && v >= 0 && Number.isFinite(v);
 
 function checkStep(s) {
   const keys = Object.keys(s);
-  const ok = keys.length === 1 || (keys.length === 2 && (('hold' in s && 'ms' in s) || ('repeat' in s && 'steps' in s)));
+  const ok = keys.length === 1 || (keys.length === 2 && (('hold' in s && 'ms' in s) || ('repeat' in s && 'steps' in s) || ('callout' in s && 'via' in s)));
   if (!ok) throw new Error(`A step has one action (hold needs ms, repeat needs steps): ${JSON.stringify(s)}`);
   if ('tap' in s && !BUTTONS.includes(s.tap)) throw new Error(`Unknown button "${s.tap}"`);
   if ('hold' in s && (!BUTTONS.includes(s.hold) || !isMs(s.ms))) throw new Error(`hold needs a button and ms: ${JSON.stringify(s)}`);
@@ -127,7 +131,7 @@ function exec(ctx, steps) {
     else if ('arm' in s) arm(ctx);
     else if ('take' in s) take(ctx);
     else if ('shoot' in s) { arm(ctx); take(ctx); }
-    else if ('callout' in s) callout(ctx, s.callout);
+    else if ('callout' in s) callout(ctx, s.callout, s.via);
     else if ('nameStation' in s) nameStation(ctx);
     else if ('cycleMark' in s) cycleMark(ctx, s.cycleMark);
     else if ('repeat' in s) for (let i = 0; i < s.repeat; i++) exec(ctx, s.steps(i));
@@ -216,6 +220,21 @@ export const SCENARIOS = [
       proposed: () => [{
         repeat: 10,
         steps: (i) => [{ task: `Feature ${i + 1}` }, { pose: stationPose(i) }, { arm: true }, { callout: FEATURES[i % FEATURES.length] }, { take: true }],
+      }],
+    },
+  },
+  {
+    id: 'tag-features-b',
+    name: 'Tag 10 features (B button)',
+    description: 'Like Tag 10 features, but proposed opens the picker with the B button (both arrows) instead of holding M.',
+    variants: {
+      stock: () => [{
+        repeat: 10,
+        steps: (i) => [{ task: `Feature ${i + 1}` }, { pose: stationPose(i) }, { arm: true }, { cycleMark: 'Feature' }, { take: true }],
+      }],
+      proposed: () => [{
+        repeat: 10,
+        steps: (i) => [{ task: `Feature ${i + 1}` }, { pose: stationPose(i) }, { arm: true }, { callout: FEATURES[i % FEATURES.length], via: 'both' }, { take: true }],
       }],
     },
   },

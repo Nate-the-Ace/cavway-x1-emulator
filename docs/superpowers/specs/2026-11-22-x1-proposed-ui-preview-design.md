@@ -52,10 +52,10 @@ The front face gets a sixth on-screen button, **B**, that presses `<` and `>`
 together (also the `B` key). The Ui recognizes the pair as its own input,
 `left+right`: a tap when the two are released together, a long press after 2 s.
 While both are held, neither arrow fires its own long press. No screen uses it
-yet, so it is an input waiting for a design: it is counted by the press
-counter (as a two-button chord), available to scenario scripts, and ignored by
-every current screen. Candidate uses (not decided): a one-press shortcut to the
-callout picker or the name editor.
+yet in the stock profile. In the proposed profile B opens the callout picker: armed,
+it tags the next shot; after a shot or in memory mode it tags the shot on screen. It
+is counted by the press counter (as a two-button chord) and available to scenario
+scripts (`{ callout: [...], via: 'both' }`, used by "Tag 10 features (B button)").
 
 ### Long press thresholds
 

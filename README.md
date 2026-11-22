@@ -142,9 +142,11 @@ Proposed flows:
 - **Station name.** `<` `>` scroll 0-9, A-Z, `-`, `.` and `OK`, `M` adds the character,
   `CLR` deletes, `DIST` accepts, long `CLR` cancels. The suggested name is the previous
   one plus one (A12 to A13), or the prefix plus the first number.
-- **B button.** Presses `<` and `>` together (key `B`). No screen uses it yet; it is
-  counted as a two-button chord. Two arrows count as a pair only when pressed within
-  300 ms of each other.
+- **B button.** Presses `<` and `>` together (key `B`). In the proposed profile it opens
+  the callout picker: before a shot it tags the next shot, after a shot or in memory
+  mode it tags the shot on screen. It is counted as a two-button chord. Two arrows
+  count as a pair only when pressed within 300 ms of each other. The scenario "Tag 10
+  features (B button)" compares it with holding M.
 
 Tools for judging the flows:
 - **Press counter.** Taps, long presses, chords, hold time, a log, and task labels,

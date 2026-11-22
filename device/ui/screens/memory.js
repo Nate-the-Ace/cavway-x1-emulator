@@ -3,6 +3,7 @@ import { fmtAngle, fmtDist, fmtDate, fmtTime } from '../format.js';
 import { view, MARKS } from '../shotview.js';
 import { calloutLabel } from '../callouts.js';
 import { shotMenu } from './shotmenu.js';
+import { PickerScreen } from './picker.js';
 
 const NONE = 7;
 const LIST_ROWS = 5;
@@ -20,6 +21,17 @@ export class MemoryScreen {
 
   key(ui, b, kind) {
     const n = this._n(ui);
+    if (b === 'left+right') {
+      // Both arrows (the B button) tag the shot under the cursor, in the proposed profile.
+      if (kind === 'tap' && ui.proposed && n > 0) {
+        const index = this._index(ui, this.cursor);
+        ui.go(new PickerScreen({
+          onPick: (u, code) => { u.annotations.setTag(index, code); u.resume(this); },
+          onCancel: (u) => u.resume(this),
+        }));
+      }
+      return;
+    }
     if (kind === 'long') {
       if (b === 'm' && ui.proposed && n > 0) {
         ui.go(shotMenu({ ui, index: this._index(ui, this.cursor), parent: this }));
