@@ -104,3 +104,47 @@ test('decode failures name the problem', () => {
   const lowNext = Uint8Array.from(good); lowNext[8] = 2;
   assert.match(fail(reseal(lowNext)), /nextId/);
 });
+
+test('decode rejects input that is not bytes', () => {
+  assert.match(decodeBlock(null).error, /not a byte array/);
+  assert.match(decodeBlock(undefined).error, /not a byte array/);
+  assert.match(decodeBlock(42).error, /not a byte array/);
+  const good = [...encodeBlock(small)];
+  assert.equal(decodeBlock(good).ok, true, 'a plain array of bytes is fine');
+  const frac = [...good]; frac[14] = 65.5;
+  assert.match(decodeBlock(frac).error, /not a value from 0 to 255/);
+  const big = [...good]; big[7] = 256;
+  assert.match(decodeBlock(big).error, /not a value from 0 to 255/);
+  const hole = [...good]; hole[20] = undefined;
+  assert.match(decodeBlock(hole).error, /not a value from 0 to 255/);
+});
+
+test('name bytes 0x7f and 0x80 and above are rejected', () => {
+  const good = encodeBlock(small);
+  for (const v of [0x7f, 0x80, 0xff]) {
+    const b = Uint8Array.from(good); b[13] = v;
+    const r = decodeBlock(reseal(b));
+    assert.equal(r.ok, false);
+    assert.match(r.error, /printable/);
+  }
+});
+
+test('the reserved header bytes must be zero', () => {
+  for (const at of [9, 10, 11]) {
+    const b = Uint8Array.from(encodeBlock(small)); b[at] = 1;
+    assert.match(decodeBlock(reseal(b)).error, /reserved/);
+  }
+});
+
+test('an empty list with trailing junk, and the extremes, decode', () => {
+  const empty = new Uint8Array(40).fill(0xaa);
+  empty.set(encodeBlock(emptyLibrary()));
+  assert.equal(decodeBlock(empty).ok, true);
+  const extreme = { version: 1, revision: 65535, nextId: 251, entries: [{ id: 250, name: 'Last' }] };
+  assert.deepEqual(decodeBlock(encodeBlock(extreme)).lib, extreme);
+});
+
+test('crc16 gives the same result for arrays and typed arrays', () => {
+  const bytes = ascii('123456789');
+  assert.equal(crc16modbus(bytes), crc16modbus(Uint8Array.from(bytes)));
+});
