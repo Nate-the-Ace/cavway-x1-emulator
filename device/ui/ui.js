@@ -5,6 +5,7 @@ import { Instrument } from '../instrument.js';
 import { HomeScreen } from './screens/home.js';
 import { MeasureScreen } from './screens/measure.js';
 import { MemoryScreen } from './screens/memory.js';
+import { ScanScreen } from './screens/scan.js';
 import { mainMenu, clearUnsentConfirm } from './screens/menu.js';
 
 export const LONG_MS = 2000;
@@ -14,6 +15,7 @@ export const SCREENS = {
   home: () => new HomeScreen(),
   measure: () => new MeasureScreen(),
   memory: () => new MemoryScreen(),
+  scan: () => new ScanScreen(),
   menu: () => mainMenu(),
   clearUnsentFromMeasure: () => clearUnsentConfirm((ui) => ui.open('measure')),
 };
