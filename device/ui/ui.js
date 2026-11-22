@@ -74,7 +74,8 @@ export class Ui {
       }
     }
     if (!this.on) return;
-    if (t - this.lastInput >= this.settings.idleOff * 1000) { this.powerOff(); return; }
+    // A screen that works on its own (scan mode) keeps the X1 awake until it ends.
+    if (!this.screen?.keepAwake && t - this.lastInput >= this.settings.idleOff * 1000) { this.powerOff(); return; }
     this.screen?.tick?.(this, t);
   }
 

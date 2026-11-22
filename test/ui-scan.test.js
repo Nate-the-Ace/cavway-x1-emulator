@@ -36,7 +36,6 @@ test('CLR returns to the measure screen, armed', () => {
 test('the time limit ends the scan', () => {
   const r = armed();
   r.ui.settings.scanMinutes = 1;
-  r.ui.settings.idleOff = 120; // idle power-off (60 s) would otherwise win the tie at 62 s
   chord(r);
   r.run(61_000);
   assert.equal(r.name(), 'MeasureScreen');
@@ -54,4 +53,14 @@ test('scan disabled: the chord does nothing', () => {
   r.ui.settings.scanEnable = false;
   chord(r);
   assert.equal(r.name(), 'MeasureScreen');
+});
+
+test('the X1 stays awake through a long scan and the idle timer restarts after it', () => {
+  const r = armed();
+  chord(r);
+  r.run(100_000); // longer than idleOff (60 s), shorter than the 2 min scan limit
+  assert.equal(r.name(), 'ScanScreen');
+  r.tap('clr');
+  r.run(30_000);
+  assert.equal(r.ui.on, true, 'idle timer restarted when the scan ended');
 });

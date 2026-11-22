@@ -6,6 +6,8 @@ const SETTLE_MS = { Low: 1200, 'Med.': 700, High: 300 };
 const MAX_SHOTS = 200;
 
 export class ScanScreen {
+  keepAwake = true;
+
   enter(ui) {
     this.count = 0;
     this.start = ui.now();
@@ -37,6 +39,7 @@ export class ScanScreen {
 
   exit(ui) {
     ui.x1.laser = false;
+    ui.lastInput = ui.now(); // the idle timer starts over when scanning ends
     ui.open('measure');
   }
 
