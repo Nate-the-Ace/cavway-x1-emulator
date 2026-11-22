@@ -98,12 +98,12 @@ export async function mountPreview({ ui, root, store, note }) {
     wrap.append(el('strong', c.scenario.name));
     const t = el('table', undefined, 'cmp');
     const head = el('tr');
-    for (const h of ['Profile', 'Presses', 'Taps', 'Long', 'Hold', 'Est.', 'Names', 'Callouts']) head.append(el('th', h));
+    for (const h of ['Profile', 'Presses', 'Taps', 'Long', 'Hold', 'Est.', 'Marks', 'Names', 'Callouts']) head.append(el('th', h));
     t.append(head);
     for (const r of [c.stock, c.proposed]) {
       const x = r.totals;
       const row = el('tr');
-      for (const v of [r.profile, x.presses, x.taps, x.longs, `${(x.holdMs / 1000).toFixed(1)} s`, `${(estimateMs(r) / 1000).toFixed(0)} s`, r.names, r.tags]) row.append(el('td', String(v)));
+      for (const v of [r.profile, x.presses, x.taps, x.longs, `${(x.holdMs / 1000).toFixed(1)} s`, `${(estimateMs(r) / 1000).toFixed(0)} s`, r.marks, r.names, r.tags]) row.append(el('td', String(v)));
       t.append(row);
     }
     wrap.append(t);

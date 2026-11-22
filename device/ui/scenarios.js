@@ -42,12 +42,16 @@ function take(ctx) {
   if (isArmed(ctx.ui)) throw new Error('The shot was not taken');
 }
 
-// Move the '>' cursor to the row whose label starts with `label`, scrolling if needed.
+// A row matches when its text is exactly the label, or the label followed by a value column.
+const sameLabel = (text, label) => text.trim() === label || text.startsWith(`${label}  `);
+
+// Move the '>' cursor to the row labelled `label`, scrolling down if it is not in view.
+// (It only scrolls down: every caller starts at the top of a list.)
 function goto(ctx, label) {
   for (let guard = 0; guard < 60; guard++) {
     const rows = ctx.ui.scene().rows;
     const cur = rows.findIndex((r) => r.startsWith('> '));
-    const target = rows.findIndex((r) => /^(> | {2})/.test(r) && r.slice(2).trim().startsWith(label));
+    const target = rows.findIndex((r) => /^(> | {2})/.test(r) && sameLabel(r.slice(2), label));
     if (cur < 0) throw new Error(`No cursor on screen looking for "${label}":\n${rows.join('\n')}`);
     if (target < 0) { ctx.tap('right'); continue; } // not in view yet: scroll down
     if (cur === target) return;
@@ -98,8 +102,22 @@ function cycleMark(ctx, label) {
   throw new Error(`Mark "${label}" never appeared`);
 }
 
+const BUTTONS = ['dist', 'm', 'left', 'right', 'clr'];
+const isMs = (v) => typeof v === 'number' && v >= 0 && Number.isFinite(v);
+
+function checkStep(s) {
+  const keys = Object.keys(s);
+  const ok = keys.length === 1 || (keys.length === 2 && (('hold' in s && 'ms' in s) || ('repeat' in s && 'steps' in s)));
+  if (!ok) throw new Error(`A step has one action (hold needs ms, repeat needs steps): ${JSON.stringify(s)}`);
+  if ('tap' in s && !BUTTONS.includes(s.tap)) throw new Error(`Unknown button "${s.tap}"`);
+  if ('hold' in s && (!BUTTONS.includes(s.hold) || !isMs(s.ms))) throw new Error(`hold needs a button and ms: ${JSON.stringify(s)}`);
+  if ('wait' in s && !isMs(s.wait)) throw new Error(`wait needs milliseconds: ${JSON.stringify(s)}`);
+  if ('repeat' in s && !(Number.isInteger(s.repeat) && typeof s.steps === 'function')) throw new Error('repeat needs a count and a steps(i) function');
+}
+
 function exec(ctx, steps) {
   for (const s of steps) {
+    checkStep(s);
     if ('task' in s) ctx.rec.task(s.task);
     else if ('pose' in s) Object.assign(ctx.ui.instrument.pose, s.pose);
     else if ('tap' in s) ctx.tap(s.tap);
@@ -118,6 +136,7 @@ function exec(ctx, steps) {
 }
 
 export function runScenario(scenario, profile, { content } = {}) {
+  if (profile !== STOCK && profile !== PROPOSED) throw new Error(`Unknown profile: ${profile}`);
   const ctx = makeCtx(profile, content);
   const variant = profile === PROPOSED ? 'proposed' : 'stock';
   exec(ctx, scenario.variants[variant](ctx.ui.content));
@@ -145,21 +164,21 @@ export const DEFAULT_TIME_MODEL = { tapMs: 600, longExtraMs: 400, shotMs: 2000 }
 
 export function estimateMs(r, m = DEFAULT_TIME_MODEL) {
   const t = r.totals;
-  return t.taps * m.tapMs + t.longs * m.longExtraMs + t.holdMs + r.shots * m.shotMs;
+  return (t.taps + t.chords) * m.tapMs + t.longs * m.longExtraMs + t.holdMs + r.shots * m.shotMs;
 }
 
 export function toMarkdown(comparisons, model = DEFAULT_TIME_MODEL) {
   const lines = [
-    '| Scenario | Profile | Presses | Taps | Long | Chords | Hold | Est. time | Names | Callouts |',
-    '|---|---|---|---|---|---|---|---|---|---|',
+    '| Scenario | Profile | Presses | Taps | Long | Chords | Hold | Est. time | Marks | Names | Callouts |',
+    '|---|---|---|---|---|---|---|---|---|---|---|',
   ];
   for (const c of comparisons) {
     for (const r of [c.stock, c.proposed]) {
       const t = r.totals;
-      lines.push(`| ${c.scenario.name} | ${r.profile} | ${t.presses} | ${t.taps} | ${t.longs} | ${t.chords} | ${(t.holdMs / 1000).toFixed(1)} s | ${(estimateMs(r, model) / 1000).toFixed(0)} s | ${r.names} | ${r.tags} |`);
+      lines.push(`| ${c.scenario.name} | ${r.profile} | ${t.presses} | ${t.taps} | ${t.longs} | ${t.chords} | ${(t.holdMs / 1000).toFixed(1)} s | ${(estimateMs(r, model) / 1000).toFixed(0)} s | ${r.marks} | ${r.names} | ${r.tags} |`);
     }
   }
-  lines.push('', `Est. time model: ${model.tapMs} ms per tap, ${model.longExtraMs} ms extra per long press plus its hold, ${model.shotMs} ms per shot. Counts are exact; times are a rough guide.`);
+  lines.push('', `Est. time model: ${model.tapMs} ms per tap, each long press its hold plus ${model.longExtraMs} ms, each chord like a tap, ${model.shotMs} ms per shot. Counts are exact; times are a rough guide.`);
   return lines.join('\n');
 }
 

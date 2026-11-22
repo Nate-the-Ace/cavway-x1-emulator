@@ -73,7 +73,8 @@ test('both-arrows step is counted as one chord', () => {
 
 test('estimateMs follows the time model', () => {
   const r = { totals: { taps: 10, longs: 2, chords: 0, holdMs: 2000 }, shots: 5 };
-  assert.equal(estimateMs(r), 10 * 600 + 2 * 400 + 2000 + 5 * 2000);
+  assert.equal(estimateMs(r), 10 * 600 + 2 * 400 + 2000 + 5 * 2000, 'a long press costs its hold plus the extra');
+  assert.equal(estimateMs({ totals: { taps: 0, longs: 0, chords: 3, holdMs: 0 }, shots: 0 }), 3 * 600, 'a chord costs a tap');
   assert.equal(estimateMs(r, { tapMs: 1000, longExtraMs: 0, shotMs: 0 }), 12000);
   assert.deepEqual(Object.keys(DEFAULT_TIME_MODEL).sort(), ['longExtraMs', 'shotMs', 'tapMs']);
 });
@@ -85,4 +86,32 @@ test('toMarkdown lists both profiles for each scenario', () => {
   assert.match(md, /stock-1\.1\.7/);
   assert.match(md, /proposed/);
   assert.match(md, /Est\. time/);
+  assert.match(md, /\| Tag 10 features \| stock-1\.1\.7 \| 31 \| 31 \| 0 \| 0 \| 0\.0 s \| \d+ s \| 10 \| 0 \| 0 \|/);
+});
+
+test('a step must have exactly one action and valid arguments', () => {
+  const run = (steps) => runScenario({ id: 't', name: 't', description: '', variants: { stock: () => steps, proposed: () => steps } }, STOCK);
+  assert.throws(() => run([{ task: 'A', pose: { az: 1 } }]), /one action/);
+  assert.throws(() => run([{ tap: 'M' }]), /Unknown button/);
+  assert.throws(() => run([{ hold: 'm' }]), /hold needs/);
+  assert.throws(() => run([{ wait: '2s' }]), /wait needs/);
+  assert.throws(() => run([{ repeat: 3 }]), /one action|repeat needs/);
+  assert.throws(() => run([{ frobnicate: 1 }]), /Unknown step/);
+});
+
+test('an unknown profile is an error', () => {
+  assert.throws(() => runScenario(byId('tag-features'), 'nope'), /Unknown profile/);
+});
+
+test('callout lookup matches whole labels', () => {
+  const sc = byId('tag-features');
+  const content = {
+    callouts: parseCallouts('Water: Drippy, Drip, Pool\nPassage: Squeeze\nHazard: Loose').categories,
+    namePrefix: 'S', nameFirst: 1,
+  };
+  const r = runScenario(sc, PROPOSED, { content });
+  assert.equal(r.tags, 10);
+  const first = r.tasks[0];
+  // wake, arm, M (Water), '>' (Drip is below Drippy), M, take
+  assert.equal(first.taps, 6);
 });
