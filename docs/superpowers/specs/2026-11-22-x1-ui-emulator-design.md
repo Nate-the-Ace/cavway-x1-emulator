@@ -164,7 +164,9 @@ reads from history.
 
 1. UI model (text-grid scenes), instrument model and panel canvas for the
    stock profile.
-2. BLE shim and the proposed profile.
+2. Proposed profile preview (callouts, name editor, press counting, scenarios);
+   see `2026-11-22-x1-proposed-ui-preview-design.md`. The BLE shim was dropped:
+   the emulator is a design tool and does not need to talk to other software.
 3. Stock firmware in a CPU emulator. Identify the MCU and image load address,
    find the vector table, model peripherals by running until the firmware
    stalls, capture frames, correct the model.
