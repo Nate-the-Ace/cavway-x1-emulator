@@ -40,7 +40,8 @@ test('names are trimmed and checked', () => {
   assert.equal(add(lib, 'x'.repeat(MAX_NAME)).ok, true);
   assert.match(add(lib, 'Café').error, /printable ASCII/);
   assert.match(add(lib, 'drip').error, /already in the list/);
-  assert.match(add(lib, 42).error, /empty/);
+  assert.match(add(lib, 42).error, /must be text/);
+  assert.match(add(lib, null).error, /must be text/);
   assert.equal(checkName('Bad air', []), null);
 });
 
@@ -132,4 +133,64 @@ test('fromNames and the default library', () => {
   assert.equal(d.entries[0].name, 'Lead');
   assert.equal(d.entries[15].name, 'Hazard');
   assert.equal(d.revision, 1);
+});
+
+test('checkLibrary reports problems in odd input instead of throwing', () => {
+  const base = { version: 1, revision: 1, nextId: 5, entries: [] };
+  const run = (entries) => checkLibrary({ ...base, entries }).join('\n');
+  assert.match(run([{ id: 1, name: 'A' }, { id: 2 }]), /Entry 2: The name must be text/);
+  assert.match(run([null]), /Entry 1: is not an entry/);
+  assert.match(run([{ id: 1, name: 'A' }, 'x']), /Entry 2: is not an entry/);
+  assert.match(run([{ id: 1, name: 'A' }, { id: 1, name: 'a' }]), /used twice[\s\S]*already in the list/);
+  assert.match(run([{ id: NaN, name: 'A' }]), /outside 1-250/);
+  assert.doesNotThrow(() => checkLibrary({ entries: 'nope' }));
+  assert.doesNotThrow(() => checkLibrary(undefined));
+  const huge = Array.from({ length: 200000 }, (_, i) => ({ id: 1, name: `n${i}` }));
+  const t0 = Date.now();
+  assert.match(run(huge), /More than 64/);
+  assert.ok(Date.now() - t0 < 500, 'a huge list is rejected without a quadratic scan');
+});
+
+test('checkLibrary boundaries: id 250, nextId 251 and 64 entries are valid', () => {
+  assert.deepEqual(checkLibrary({ version: 1, revision: 0, nextId: 251, entries: [{ id: 250, name: 'Last' }] }), []);
+  const sixtyFour = Array.from({ length: 64 }, (_, i) => ({ id: i + 1, name: `N${i}` }));
+  assert.deepEqual(checkLibrary({ version: 1, revision: 0, nextId: 65, entries: sixtyFour }), []);
+  assert.match(checkLibrary({ version: 1, revision: 0, nextId: 250, entries: [{ id: 250, name: 'Last' }] }).join(), /nextId/);
+});
+
+test('positions must be whole numbers', () => {
+  let lib = emptyLibrary();
+  for (const n of ['A', 'B', 'C']) lib = must(add(lib, n));
+  for (const bad of [NaN, null, 1.5, 'x']) {
+    assert.match(add(lib, 'Z', { at: bad }).error, /whole number/);
+    assert.match(move(lib, 2, bad).error, /whole number/);
+  }
+  assert.equal(add(lib, 'Z', { at: 1 }).ok, true);
+  assert.equal(move(lib, 2, 1.5).lib, lib, 'a rejected move returns the library unchanged');
+});
+
+test('an inconsistent next id stops add', () => {
+  const lib = { version: 1, revision: 0, nextId: 2, entries: [{ id: 2, name: 'A' }] };
+  assert.match(add(lib, 'B').error, /inconsistent/);
+  assert.match(add({ ...lib, nextId: NaN }, 'B').error, /inconsistent/);
+});
+
+test('results share nothing with the input', () => {
+  const lib = must(add(must(add(emptyLibrary(), 'Lead')), 'Drip'));
+  const next = must(rename(lib, 1, 'Leads'));
+  next.entries[1].name = 'Changed';
+  assert.equal(lib.entries[1].name, 'Drip');
+  const added = must(add(lib, 'Pool'));
+  added.entries[0].name = 'Changed';
+  assert.equal(lib.entries[0].name, 'Lead');
+});
+
+test('findByName ignores non-text input; fromNames failure has the usual shape', () => {
+  const lib = must(add(emptyLibrary(), 'undefined'));
+  assert.equal(findByName(lib, undefined), undefined);
+  assert.equal(findByName(lib, null), undefined);
+  const r = fromNames(['A', 'a']);
+  assert.equal(r.ok, false);
+  assert.match(r.error, /Line 2/);
+  assert.deepEqual(r.lib, emptyLibrary());
 });
