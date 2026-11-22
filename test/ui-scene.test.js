@@ -18,6 +18,7 @@ test('lr right-aligns and clips the left side', () => {
   const clipped = lr('x'.repeat(30), 'R');
   assert.equal(clipped.length, COLS);
   assert.ok(clipped.endsWith('R'));
+  assert.equal(lr('L', 'y'.repeat(30)), 'y'.repeat(COLS), 'over-long right text is clipped to the grid');
 });
 
 test('formatters', () => {

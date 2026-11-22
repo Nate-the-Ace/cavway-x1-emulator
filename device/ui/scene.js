@@ -4,6 +4,7 @@ export const ROWS = 8;
 
 // Left text and right text on one row; the left side is clipped to make room.
 export function lr(left, right) {
+  if (right.length > COLS) right = right.slice(-COLS);
   const room = Math.max(0, COLS - right.length);
   return left.slice(0, room).padEnd(room) + right;
 }
