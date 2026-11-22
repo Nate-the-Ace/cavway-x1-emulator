@@ -58,6 +58,25 @@
   </div>
 </section>
 
+<section class="card" id="face" aria-label="X1 front face">
+  <h2>Front face</h2>
+  <canvas id="lcd" class="lcd" aria-label="X1 display"></canvas>
+  <div class="keys">
+    <button data-btn="left" aria-label="Left">&lt;</button>
+    <button data-btn="dist" class="dist">DIST</button>
+    <button data-btn="right" aria-label="Right">&gt;</button>
+    <button data-btn="m">M</button>
+    <button data-btn="clr">CLR</button>
+  </div>
+  <p class="hint">Keys: Space = DIST, arrows, M, Esc = CLR. Hold DIST 2 s for a delayed shot.</p>
+  <div class="grid3">
+    <label>Azimuth °<input id="poseAz" type="number" step="0.1"></label>
+    <label>Inclination °<input id="poseInc" type="number" step="0.1"></label>
+    <label>Distance m<input id="poseDist" type="number" step="0.01" min="0"></label>
+  </div>
+  <label class="check"><input id="chkForceErr" type="checkbox"> Force ACC ERR on shots</label>
+</section>
+
 <section class="card">
   <h2>Firmware</h2>
   <dl class="kv">

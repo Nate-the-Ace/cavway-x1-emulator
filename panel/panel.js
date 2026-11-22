@@ -3,6 +3,8 @@ import { X1, defaultFaults, defaultSettings } from '../device/x1.js';
 import { makeRng } from '../device/rng.js';
 import { Host } from './host.js';
 import { attachHost } from './glue.js';
+import { Ui } from '../device/ui/ui.js';
+import { mountFace } from './face.js';
 
 const $ = (id) => document.getElementById(id);
 const store = chrome.storage.local;
@@ -71,6 +73,11 @@ x1.on((type) => { if (type === 'change') { render(); save(); } });
 
 await attachHost(host, chrome);
 if (saved.plugged) host.setPlugged(true);
+
+// ---- front face ------------------------------------------------------------------
+const ui = new Ui({ x1 });
+ui.instrument.onLive = (packet) => host.sendUnsolicited(packet);
+mountFace({ ui, canvas: $('lcd'), root: $('face'), note });
 
 // ---- rendering -----------------------------------------------------------------
 function fmtClock(t) {
