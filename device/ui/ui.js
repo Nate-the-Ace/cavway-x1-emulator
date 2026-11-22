@@ -3,12 +3,14 @@ import { scene } from './scene.js';
 import { defaultUiSettings } from './settings.js';
 import { Instrument } from '../instrument.js';
 import { HomeScreen } from './screens/home.js';
+import { MeasureScreen } from './screens/measure.js';
 
 export const LONG_MS = 2000;
 
 // Screen factories by name. Later tasks add their screens here.
 export const SCREENS = {
   home: () => new HomeScreen(),
+  measure: () => new MeasureScreen(),
 };
 
 export class Ui {
