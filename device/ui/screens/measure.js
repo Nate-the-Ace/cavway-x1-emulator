@@ -24,8 +24,8 @@ export class MeasureScreen {
 
   take(ui) {
     this.dueAt = null;
+    // x1.measure() clears the laser itself; if the shot fails the laser stays on.
     const r = ui.instrument.fire({ flag: this.mark });
-    ui.x1.laser = false;
     if (!r) return;
     this.result = r;
     this.page = 0;
@@ -94,7 +94,9 @@ export class MeasureScreen {
     const v = view(ui.x1.memory.shots[this.result.index]);
     if (this.page === 1) {
       const errs = v.hasErr ? v.errKinds.map((k) => `${k} error`) : ['No error'];
-      return scene(['Accuracy Error', ...errs, '', '', '', '< >:Prev/Next page', 'M:Menu CLR:Home']);
+      const rows = ['Accuracy Error', ...errs];
+      while (rows.length < 6) rows.push('');
+      return scene([...rows, '< >:Prev/Next page', 'M:Menu CLR:Home']);
     }
     if (this.page === 2) {
       const inc = (v.inclination * Math.PI) / 180;

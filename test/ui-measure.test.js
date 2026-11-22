@@ -110,3 +110,22 @@ test('CLR leaves measuring and switches the laser off', () => {
   assert.equal(r.x1.laser, false);
   assert.equal(r.name(), 'HomeScreen');
 });
+
+test('a shot that cannot be taken leaves the laser on', () => {
+  const r = armed();
+  r.x1.reboot(); // the X1 is busy booting (a reboot also clears the laser)
+  r.x1.laser = true;
+  r.tap('dist');
+  assert.equal(r.x1.memory.shots.length, 0);
+  assert.equal(r.x1.laser, true);
+  assert.match(r.text(), /DIST +---- m/);
+});
+
+test('the error page keeps its footer with four error kinds', () => {
+  const r = armed();
+  r.tap('dist');
+  r.x1.memory.shots[0][45] = 0x0f;
+  r.tap('right');
+  assert.match(r.text(), /angle error/);
+  assert.match(r.text(), /M:Menu CLR:Home/);
+});
