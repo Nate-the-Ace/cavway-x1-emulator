@@ -33,10 +33,10 @@ export class CalibrationScreen {
 
   _shoot(ui) {
     if (this.groups >= MAX_GROUPS) { ui.beep('long'); return; }
-    this.done = false;
     const r = ui.instrument.fire({});
     ui.x1.laser = true;
-    if (!r) return;
+    if (!r) return; // a failed shot leaves the group state alone
+    this.done = false;
     this.inGroup++;
     if (this.inGroup === 4) {
       this.groups++;

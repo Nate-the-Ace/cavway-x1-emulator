@@ -48,6 +48,7 @@ test('M needs at least nine groups, then reports and applies', () => {
   r.ui.takeBeeps();
   r.tap('m');
   assert.equal(r.name(), 'CalibrationScreen');
+  assert.deepEqual(r.ui.takeBeeps(), ['short'], 'M below nine groups only beeps');
   shots(r, 4);
   r.tap('m');
   assert.equal(r.name(), 'CalibrationReport');
@@ -88,4 +89,13 @@ test('CLR leaves calibration', () => {
   assert.equal(r.x1.cali, false);
   assert.equal(r.x1.laser, false);
   assert.equal(r.name(), 'HomeScreen');
+});
+
+test('a failed shot keeps a just-completed group', () => {
+  const r = calib();
+  shots(r, 4);
+  r.x1.firmware.state = 'bootloader';
+  shots(r, 1);
+  assert.match(r.text(), /Group 1/);
+  assert.match(r.text(), /4 \/ 4/);
 });
