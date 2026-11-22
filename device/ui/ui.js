@@ -7,11 +7,14 @@ import { MeasureScreen } from './screens/measure.js';
 import { MemoryScreen } from './screens/memory.js';
 import { ScanScreen } from './screens/scan.js';
 import { mainMenu, clearUnsentConfirm } from './screens/menu.js';
-import { LONG_MS, STOCK, longMs, isProposed } from './profile.js';
+import { LONG_MS, STOCK, PROPOSED, longMs, isProposed } from './profile.js';
 import { Annotations } from './annotations.js';
 import { defaultContent } from './callouts.js';
 
 export { LONG_MS };
+
+// Two arrows pressed within this long of each other count as one both-arrows press.
+const PAIR_MS = 300;
 
 // Screen factories by name.
 export const SCREENS = {
@@ -45,6 +48,7 @@ export class Ui {
   get proposed() { return isProposed(this.profile); }
 
   setProfile(profile) {
+    if (profile !== STOCK && profile !== PROPOSED) throw new Error(`Unknown profile: ${profile}`);
     this.profile = profile;
     this.powerOff();
     this.annotations.clear();
@@ -73,7 +77,7 @@ export class Ui {
     // An arrow released while the other arrow is still down: one left+right tap.
     const other = b === 'left' ? 'right' : b === 'right' ? 'left' : null;
     const p = other ? this.down.get(other) : null;
-    if (p && !p.fired) {
+    if (p && !p.fired && Math.abs(e.at - p.at) <= PAIR_MS) {
       p.fired = true;
       this._dispatch('left+right', 'tap', this.now() - Math.max(e.at, p.at));
       return;
@@ -94,14 +98,18 @@ export class Ui {
       m.fired = true;
       this._dispatch('dist+m', 'chord', t - Math.max(d.at, m.at));
     }
-    if (l && r && !l.fired && !r.fired && t - Math.max(l.at, r.at) >= LONG_MS) {
+    if (l && r && !l.fired && !r.fired && Math.abs(l.at - r.at) <= PAIR_MS && t - Math.max(l.at, r.at) >= LONG_MS) {
       l.fired = true;
       r.fired = true;
       this._dispatch('left+right', 'long', t - Math.max(l.at, r.at));
     }
     for (const [b, e] of this.down) {
       // While its chord partner is held and unfired, a button may still become part of a chord.
-      const partner = b === 'dist' ? m : b === 'm' ? d : b === 'left' ? r : b === 'right' ? l : null;
+      let partner = b === 'dist' ? m : b === 'm' ? d : null;
+      if (b === 'left' || b === 'right') {
+        const o = b === 'left' ? r : l;
+        if (o && Math.abs(e.at - o.at) <= PAIR_MS) partner = o; // only a near-simultaneous pair
+      }
       if (partner && !partner.fired) continue;
       if (this.on && !e.fired && t - e.at >= longMs(this.profile, b)) {
         e.fired = true;

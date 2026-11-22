@@ -29,9 +29,22 @@ test('proposed: M is a long press after 1 s and does not open the menu', () => {
   assert.deepEqual(seen, ['m:long'], 'no tap after the long press');
 });
 
+test('proposed: a long M on the real home screen does not open the menu', () => {
+  const r = rig({ ui: { profile: PROPOSED } });
+  r.tap('dist');
+  r.hold('m', 1100);
+  assert.equal(r.name(), 'HomeScreen');
+  assert.doesNotMatch(r.text(), /Calibration/);
+});
+
 test('proposed: CLR and DIST long presses are still 2 s', () => {
   const r = rig({ ui: { profile: PROPOSED } });
   r.tap('dist');
+  const seen = watch(r);
+  r.hold('dist', 1100);
+  assert.deepEqual(seen, ['dist:tap'], 'DIST held 1.1 s is still only a tap');
+  r.hold('dist', 2100);
+  assert.deepEqual(seen.slice(-1), ['dist:long']);
   r.hold('clr', 1100);
   assert.equal(r.ui.on, true);
   r.hold('clr', 2000);
@@ -128,9 +141,13 @@ test('setProfile powers off and clears annotations; resetState clears them too',
   assert.equal(r.ui.proposed, true);
   assert.equal(r.ui.on, false);
   assert.equal(r.ui.annotations.tags.size, 0);
+  assert.equal(r.ui.annotations.names.size, 0);
   r.ui.annotations.setTag(1, 5);
+  r.ui.annotations.setName(1, 'B2');
   r.ui.resetState();
   assert.equal(r.ui.annotations.tags.size, 0);
+  assert.equal(r.ui.annotations.names.size, 0);
+  assert.throws(() => r.ui.setProfile('nope'), /Unknown profile/);
   r.ui.setProfile(STOCK);
   assert.equal(r.ui.proposed, false);
 });
@@ -141,4 +158,43 @@ test('content defaults to the default callouts and can be replaced', () => {
   const custom = { callouts: [{ name: 'X', items: ['a'] }], namePrefix: 'Q', nameFirst: 7 };
   const r2 = rig({ ui: { content: custom } });
   assert.equal(r2.ui.content.namePrefix, 'Q');
+  assert.deepEqual(r2.ui.content.callouts, [{ name: 'X', items: ['a'] }]);
+});
+
+test('arrows pressed far apart are not a pair', () => {
+  const r = rig();
+  r.tap('dist');
+  const seen = watch(r);
+  r.ui.press('right');
+  r.run(500);
+  r.ui.press('left');
+  r.ui.release('left');
+  r.run(100);
+  r.ui.release('right');
+  assert.deepEqual(seen, ['left:tap', 'right:tap']);
+});
+
+test("a stray '<' during a long '>' does not stop the long press", () => {
+  const r = rig();
+  r.tap('dist');
+  const seen = watch(r);
+  r.ui.press('right');
+  r.run(500);
+  r.ui.press('left');
+  r.ui.release('left');
+  r.run(1600);
+  r.ui.release('right');
+  assert.deepEqual(seen, ['left:tap', 'right:long']);
+});
+
+test('arrows 100 ms apart still count as a pair', () => {
+  const r = rig();
+  r.tap('dist');
+  const seen = watch(r);
+  r.ui.press('left');
+  r.run(100);
+  r.ui.press('right');
+  r.ui.release('left');
+  r.ui.release('right');
+  assert.deepEqual(seen, ['left+right:tap']);
 });
