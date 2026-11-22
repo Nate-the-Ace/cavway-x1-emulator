@@ -2,6 +2,7 @@ import { scene, lr } from '../scene.js';
 import { fmtDate, fmtTime } from '../format.js';
 import { defaultUiSettings } from '../settings.js';
 import { ADDR } from '../../memory.js';
+import { CalibrationScreen } from './calibration.js';
 
 const FOOT = ['< >:Prev/Next', 'M:Enter'];
 const FOOT_ADJ = ['< >:Prev/Next', 'M:Adjust CLR:Back'];
@@ -227,7 +228,7 @@ export function mainMenu() {
   return new ListScreen({
     back: (ui) => ui.open('home'),
     items: [
-      { label: 'Calibration', enter: () => { throw new Error('Calibration screen arrives in Task 8'); } },
+      { label: 'Calibration', enter: () => new CalibrationScreen() },
       { label: 'Clr. Unsent', enter: (ui, self) => clearUnsentConfirm((u) => u.resume(self)) },
       { label: 'Options', enter: (ui, self) => optionsMenu((u) => u.resume(self)) },
       { label: 'Information', enter: (ui, self) => new InfoScreen((u) => u.resume(self)) },
