@@ -217,7 +217,7 @@ function advancedMenu(back) {
         label: 'Factory reset',
         enter: (ui, self) => new ConfirmScreen(
           ['', 'Factory reset', ' Erase all?'],
-          (u) => { u.x1.factoryReset(); Object.assign(u.settings, defaultUiSettings()); u.sent.clear(); u.open('home'); },
+          (u) => { u.x1.factoryReset(); u.resetState(); u.open('home'); },
           (u) => u.resume(self),
         ),
       },

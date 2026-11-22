@@ -84,3 +84,24 @@ test('empty memory', () => {
   r.tap('m');
   assert.match(r.text(), /No data/);
 });
+
+test('memory shrinking under the screen does not break it', () => {
+  const r = seeded(5);
+  for (let i = 0; i < 4; i++) r.tap('right');
+  r.tap('m');
+  r.x1.memory.shots = [];
+  assert.match(r.text(), /No data/);
+  r.ui.instrument.fire({});
+  assert.match(r.text(), /SHOT # 1/);
+  r.tap('m');
+  assert.match(r.text(), /absG:|DIST:|Horizontal|No error/);
+});
+
+test('long distances keep the unsent marker on screen', () => {
+  const r = rig();
+  r.ui.instrument.pose = { az: 123, inc: 4, dist: 112.5 };
+  r.ui.instrument.fire({ flag: 0 });
+  r.tap('dist');
+  r.tap('right');
+  assert.match(r.text(), /112\.5 +123\.0 +4\.0\*_/);
+});

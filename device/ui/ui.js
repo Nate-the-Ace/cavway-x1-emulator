@@ -68,6 +68,9 @@ export class Ui {
       this._dispatch('dist+m', 'chord');
     }
     for (const [b, e] of this.down) {
+      // While its chord partner is held and unfired, DIST or M may still become a chord.
+      const partner = b === 'dist' ? m : b === 'm' ? d : null;
+      if (partner && !partner.fired) continue;
       if (this.on && !e.fired && t - e.at >= LONG_MS) {
         e.fired = true;
         this._dispatch(b, 'long');
@@ -109,6 +112,12 @@ export class Ui {
   }
   go(screen) { this.screen = screen; screen.enter?.(this); }
   resume(screen) { this.screen = screen; }
+
+  // Back to factory state for what the Ui keeps: settings and transfer flags.
+  resetState() {
+    Object.assign(this.settings, defaultUiSettings());
+    this.sent.clear();
+  }
 
   scene() {
     if (!this.on || !this.screen) return scene([]);

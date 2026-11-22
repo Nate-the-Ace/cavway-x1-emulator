@@ -31,6 +31,7 @@ export class MemoryScreen {
 
   render(ui) {
     const n = this._n(ui);
+    this.cursor = clamp(this.cursor, 0, Math.max(0, n - 1)); // memory may shrink under us
     if (n === 0) return scene(['SHOT #  -', '', '', 'No data']);
     return this.detail === null ? this._list(ui, n) : this._detail(ui, n);
   }
@@ -45,7 +46,11 @@ export class MemoryScreen {
       const v = view(ui.x1.memory.shots[i]);
       const flag = v.hasErr ? 'E' : v.isCali ? 'C' : v.isScan ? 'S' : ' ';
       const tail = (ui.isUnsent(i) ? '*' : ' ') + (v.mark !== NONE ? '_' : ' ');
-      const num = (x, d) => x.toFixed(d).padStart(5);
+      // Keep each column 5 wide: drop a decimal when the value would not fit.
+      const num = (x, d) => {
+        const t = x.toFixed(d);
+        return (t.length > 5 ? x.toFixed(Math.max(0, d - 1)) : t).padStart(5);
+      };
       if (v.isLeg && !v.isCali && !v.isScan) bold.push(rows.length);
       rows.push(`${flag} ${num(distIn(v.distance, s.distUnit), 2)} ${num(angIn(v.azimuth, s.angleUnit), 1)} ${num(angIn(v.inclination, s.angleUnit), 1)}${tail}`);
     }

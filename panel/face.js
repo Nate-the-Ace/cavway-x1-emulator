@@ -41,18 +41,33 @@ export function mountFace({ ui, canvas, root, note, onStateChange = () => {} }) 
   }
 
   // Keyboard, unless the user is typing in a field.
-  const typing = () => /^(INPUT|SELECT|TEXTAREA)$/.test(document.activeElement?.tagName ?? '');
+  // Also leave panel buttons and drawer headers alone, so Space and Enter still activate them.
+  const typing = () => {
+    const el = document.activeElement;
+    if (!el) return false;
+    if (/^(INPUT|SELECT|TEXTAREA|SUMMARY)$/.test(el.tagName)) return true;
+    return el.tagName === 'BUTTON' && !el.dataset.btn;
+  };
+  const held = new Set();
   window.addEventListener('keydown', (e) => {
     const b = KEYMAP[e.key];
     if (!b || e.repeat || typing()) return;
     e.preventDefault();
+    held.add(b);
     ui.press(b);
     draw();
   });
   window.addEventListener('keyup', (e) => {
     const b = KEYMAP[e.key];
-    if (!b || typing()) return;
+    if (!b) return;
+    held.delete(b);
     ui.release(b);
+    draw();
+  });
+  // Losing focus while a key is held would otherwise leave the button stuck down.
+  window.addEventListener('blur', () => {
+    for (const b of held) ui.release(b);
+    held.clear();
     draw();
   });
 

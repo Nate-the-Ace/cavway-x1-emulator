@@ -140,6 +140,7 @@ $('btnMeasure').addEventListener('click', () => {
 });
 $('btnClearShots').addEventListener('click', () => {
   x1.memory.shots = [];
+  ui.sent.clear();
   note('Shots cleared');
   render();
   save();
@@ -221,6 +222,7 @@ $('btnFactory').addEventListener('click', () => {
   resetArmed = null;
   $('btnFactory').textContent = 'Factory reset';
   x1.factoryReset();
+  ui.resetState();
   note('Factory reset');
 });
 

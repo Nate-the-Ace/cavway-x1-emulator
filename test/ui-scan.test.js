@@ -82,3 +82,16 @@ test('the scan ends when a shot cannot be stored', () => {
   r.run(800);
   assert.equal(r.name(), 'MeasureScreen');
 });
+
+test('200 scan shots end the scan', () => {
+  const r = armed();
+  r.ui.settings.scanMinutes = 10;
+  chord(r);
+  for (let i = 0; i < 200 && r.name() === 'ScanScreen'; i++) {
+    r.ui.instrument.pose = { az: i, inc: 0, dist: 2 };
+    r.run(100);
+    r.run(800);
+  }
+  assert.equal(r.name(), 'MeasureScreen');
+  assert.equal(r.x1.memory.shots.length, 200);
+});

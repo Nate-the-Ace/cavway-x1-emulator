@@ -78,3 +78,26 @@ test('beep is silent when switched off', () => {
   assert.deepEqual(r.ui.takeBeeps(), ['short']);
   assert.deepEqual(r.ui.takeBeeps(), []);
 });
+
+test('a chord still fires when M is pressed a little after DIST', () => {
+  const r = rig();
+  r.tap('dist');
+  const seen = [];
+  r.ui.screen.key = (ui, b, kind) => seen.push(`${b}:${kind}`);
+  r.ui.press('dist');
+  r.run(300);
+  r.ui.press('m');
+  r.run(2100);
+  r.ui.release('dist');
+  r.ui.release('m');
+  assert.deepEqual(seen, ['dist+m:chord']);
+});
+
+test('resetState restores settings and transfer flags', () => {
+  const r = rig();
+  r.ui.settings.shotDelay = 7;
+  r.ui.sent.add(3);
+  r.ui.resetState();
+  assert.equal(r.ui.settings.shotDelay, 0);
+  assert.equal(r.ui.sent.size, 0);
+});
