@@ -7,7 +7,7 @@ const CELL_H = 32;
 const BG = '#b7c98a';
 const FG = '#1f2a10';
 
-export function mountFace({ ui, canvas, root, note }) {
+export function mountFace({ ui, canvas, root, note, onStateChange = () => {} }) {
   const ctx = canvas.getContext('2d');
   canvas.width = COLS * CELL_W;
   canvas.height = ROWS * CELL_H;
@@ -65,8 +65,16 @@ export function mountFace({ ui, canvas, root, note }) {
   }
   root.querySelector('#chkForceErr').addEventListener('change', (e) => { ui.instrument.forceErr = e.target.checked; });
 
+  // The laser and calibration LEDs live in the panel; tell it when the Ui changes them.
+  let lastLaser = ui.x1.laser;
+  let lastCali = ui.x1.cali;
   setInterval(() => {
     ui.tick();
+    if (ui.x1.laser !== lastLaser || ui.x1.cali !== lastCali) {
+      lastLaser = ui.x1.laser;
+      lastCali = ui.x1.cali;
+      onStateChange();
+    }
     for (const b of ui.takeBeeps()) note(`Beep: ${b}`);
     draw();
   }, 100);

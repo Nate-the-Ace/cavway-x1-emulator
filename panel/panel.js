@@ -77,7 +77,7 @@ if (saved.plugged) host.setPlugged(true);
 // ---- front face ------------------------------------------------------------------
 const ui = new Ui({ x1 });
 ui.instrument.onLive = (packet) => host.sendUnsolicited(packet);
-mountFace({ ui, canvas: $('lcd'), root: $('face'), note });
+mountFace({ ui, canvas: $('lcd'), root: $('face'), note, onStateChange: render });
 
 // ---- rendering -----------------------------------------------------------------
 function fmtClock(t) {
