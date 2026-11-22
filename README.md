@@ -124,5 +124,37 @@ Guessed, not measured: close-shot tolerances (2°, 2% distance), scan settle
 times, the scan flag bit (bit 6 of the flag byte), the canned calibration report,
 the hardware, BLE and battery values on the Information page, and the screen
 layout (a 21x8 text grid, not the real pixels). A later phase will check these
-against the real firmware. The BLE link and the proposed callout and name
-features are not built yet.
+against the real firmware. The proposed callout and name features are described
+next. A Bluetooth link is not planned: the emulator is a design tool.
+
+## Proposed profile preview
+
+The front face has a "Firmware profile" switch: stock 1.1.7 or proposed. Switching
+powers the X1 off and clears callouts and names. Tags and names live only in the
+UI model, not in shot records.
+
+Proposed flows:
+- **Callout.** With the laser armed, hold M for 1 s: pick a category, then an item
+  (`<` `>` move, `M` selects, `CLR` goes back). The next shot gets the callout. The
+  last three used callouts appear first under `Recent`.
+- **Shot menu.** After a shot, or in memory mode, hold M for 1 s: Callout, Name, Mark,
+  Delete shot (last shot only).
+- **Station name.** `<` `>` scroll 0-9, A-Z, `-`, `.` and `OK`, `M` adds the character,
+  `CLR` deletes, `DIST` accepts, long `CLR` cancels. The suggested name is the previous
+  one plus one (A12 to A13), or the prefix plus the first number.
+- **B button.** Presses `<` and `>` together (key `B`). No screen uses it yet; it is
+  counted as a two-button chord. Two arrows count as a pair only when pressed within
+  300 ms of each other.
+
+Tools for judging the flows:
+- **Press counter.** Taps, long presses, chords, hold time, a log, and task labels,
+  with "Copy as text".
+- **Scenarios.** Replayable cave-trip scripts run on stock and proposed with exact
+  press counts and a rough time estimate; "Copy as markdown" for sharing.
+- **Callout menu.** Edit categories and items (up to 8 by 8, names up to 8
+  characters), the name prefix and the first number.
+
+Guessed: the 1 s long press for M, using a long M after a shot as the shot menu (the
+real 1.1.7 shot menu may open differently), the stock steps in each scenario, and the
+time model. A slow M tap (held 1 s or more) becomes a long press in the proposed
+profile, which is part of what is being tested.
