@@ -13,6 +13,7 @@ export class InputRecorder {
 
   reset() {
     this.events = [];
+    this.startedAt = null; // time of the first input since reset
     this.tasks = [newTask('Start')];
   }
 
@@ -24,6 +25,7 @@ export class InputRecorder {
   }
 
   record(e) {
+    if (this.startedAt === null) this.startedAt = e.t;
     this.events.push(e);
     if (this.events.length > this.maxLog) this.events.shift();
     const t = this.tasks.at(-1);
@@ -52,10 +54,10 @@ export class InputRecorder {
     if (this.tasks.length > 1 || this.tasks[0].name !== 'Start') {
       for (const k of this.tasks) out.push(`${k.name}: ${presses(k)} presses (taps ${k.taps}, long ${k.longs}, chords ${k.chords})`);
     }
-    const first = this.events[0]?.t ?? 0;
-    out.push('', `Last ${Math.min(logLines, this.events.length)} inputs:`);
-    for (const e of this.events.slice(-logLines)) {
-      out.push(`+${((e.t - first) / 1000).toFixed(1)}s ${e.kind} ${e.button} ${e.screen}`);
+    const shown = this.events.slice(Math.max(0, this.events.length - logLines));
+    out.push('', `Last ${shown.length} inputs:`);
+    for (const e of shown) {
+      out.push(`+${((e.t - this.startedAt) / 1000).toFixed(1)}s ${e.kind} ${e.button} ${e.screen}`);
     }
     return out.join('\n');
   }

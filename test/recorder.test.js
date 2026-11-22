@@ -77,3 +77,16 @@ test('recording real presses through Ui.onInput', () => {
   assert.equal(rec.events[0].screen, 'off');
   assert.equal(rec.events[1].screen, 'HomeScreen');
 });
+
+test('toText: zero log lines, and offsets count from the first input even after trimming', () => {
+  const r = new InputRecorder({ maxLog: 2 });
+  r.record(ev('dist', 'tap', 0, 'X', 1000));
+  r.record(ev('dist', 'tap', 0, 'X', 3000));
+  r.record(ev('dist', 'tap', 0, 'X', 6000));
+  assert.match(r.toText(0), /Last 0 inputs:/);
+  assert.doesNotMatch(r.toText(0), /\+\d/);
+  assert.match(r.toText(), /\+5\.0s tap dist/);
+  assert.equal(r.startedAt, 1000);
+  r.reset();
+  assert.equal(r.startedAt, null);
+});
