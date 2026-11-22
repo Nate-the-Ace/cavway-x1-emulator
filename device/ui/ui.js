@@ -4,6 +4,7 @@ import { defaultUiSettings } from './settings.js';
 import { Instrument } from '../instrument.js';
 import { HomeScreen } from './screens/home.js';
 import { MeasureScreen } from './screens/measure.js';
+import { MemoryScreen } from './screens/memory.js';
 
 export const LONG_MS = 2000;
 
@@ -11,6 +12,7 @@ export const LONG_MS = 2000;
 export const SCREENS = {
   home: () => new HomeScreen(),
   measure: () => new MeasureScreen(),
+  memory: () => new MemoryScreen(),
 };
 
 export class Ui {
