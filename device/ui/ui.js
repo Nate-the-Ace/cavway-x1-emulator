@@ -92,7 +92,11 @@ export class Ui {
   // ---- screens --------------------------------------------------------------
   // open: a fresh screen (its enter() runs). resume: go back to a live one.
   // Screens not yet registered are ignored.
-  open(name) { const make = SCREENS[name]; if (make) this.go(make()); }
+  open(name) {
+    const make = SCREENS[name];
+    if (!make) throw new Error(`Unknown screen: ${name}`);
+    this.go(make());
+  }
   go(screen) { this.screen = screen; screen.enter?.(this); }
   resume(screen) { this.screen = screen; }
 

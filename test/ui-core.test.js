@@ -33,7 +33,7 @@ test('idle power-off follows the setting and any press resets it', () => {
   const r = rig();
   r.tap('dist');
   r.run(50_000);
-  r.tap('m');
+  r.tap('clr');
   r.run(50_000);
   assert.equal(r.ui.on, true);
   r.run(11_000);
