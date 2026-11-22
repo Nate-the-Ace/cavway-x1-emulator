@@ -8,4 +8,6 @@ export const KEYMAP = {
   M: 'm',
   Escape: 'clr',
   Backspace: 'clr',
+  b: 'both',
+  B: 'both',
 };

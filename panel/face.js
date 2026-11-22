@@ -7,6 +7,10 @@ const CELL_H = 32;
 const BG = '#b7c98a';
 const FG = '#1f2a10';
 
+// The B button is both arrows at once.
+const EXPAND = { both: ['left', 'right'] };
+const buttonsOf = (name) => EXPAND[name] ?? [name];
+
 export function mountFace({ ui, canvas, root, note, onStateChange = () => {} }) {
   const ctx = canvas.getContext('2d');
   canvas.width = COLS * CELL_W;
@@ -34,9 +38,9 @@ export function mountFace({ ui, canvas, root, note, onStateChange = () => {} }) 
   // On-screen buttons: pointer down is press, up/leave/cancel is release.
   for (const el of root.querySelectorAll('[data-btn]')) {
     const b = el.dataset.btn;
-    el.addEventListener('pointerdown', (e) => { e.preventDefault(); ui.press(b); draw(); });
+    el.addEventListener('pointerdown', (e) => { e.preventDefault(); for (const x of buttonsOf(b)) ui.press(x); draw(); });
     for (const type of ['pointerup', 'pointerleave', 'pointercancel']) {
-      el.addEventListener(type, () => { ui.release(b); draw(); });
+      el.addEventListener(type, () => { for (const x of buttonsOf(b)) ui.release(x); draw(); });
     }
   }
 
@@ -54,19 +58,19 @@ export function mountFace({ ui, canvas, root, note, onStateChange = () => {} }) 
     if (!b || e.repeat || typing()) return;
     e.preventDefault();
     held.add(b);
-    ui.press(b);
+    for (const x of buttonsOf(b)) ui.press(x);
     draw();
   });
   window.addEventListener('keyup', (e) => {
     const b = KEYMAP[e.key];
     if (!b) return;
     held.delete(b);
-    ui.release(b);
+    for (const x of buttonsOf(b)) ui.release(x);
     draw();
   });
   // Losing focus while a key is held would otherwise leave the button stuck down.
   window.addEventListener('blur', () => {
-    for (const b of held) ui.release(b);
+    for (const b of held) for (const x of buttonsOf(b)) ui.release(x);
     held.clear();
     draw();
   });

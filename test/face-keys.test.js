@@ -12,3 +12,8 @@ test('keyboard map', () => {
   assert.equal(KEYMAP.Escape, 'clr');
   assert.equal(KEYMAP.Backspace, 'clr');
 });
+
+test('the B key presses both arrows', () => {
+  assert.equal(KEYMAP.b, 'both');
+  assert.equal(KEYMAP.B, 'both');
+});

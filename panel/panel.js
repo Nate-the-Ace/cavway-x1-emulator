@@ -5,6 +5,7 @@ import { Host } from './host.js';
 import { attachHost } from './glue.js';
 import { Ui } from '../device/ui/ui.js';
 import { mountFace } from './face.js';
+import { mountPreview } from './preview.js';
 
 const $ = (id) => document.getElementById(id);
 const store = chrome.storage.local;
@@ -78,6 +79,7 @@ if (saved.plugged) host.setPlugged(true);
 const ui = new Ui({ x1 });
 ui.instrument.onLive = (packet) => host.sendUnsolicited(packet);
 mountFace({ ui, canvas: $('lcd'), root: $('face'), note, onStateChange: render });
+await mountPreview({ ui, root: document, store, note });
 
 // ---- rendering -----------------------------------------------------------------
 function fmtClock(t) {
@@ -140,6 +142,7 @@ $('btnMeasure').addEventListener('click', () => {
 });
 $('btnClearShots').addEventListener('click', () => {
   x1.memory.shots = [];
+  ui.annotations.clear();
   ui.sent.clear();
   note('Shots cleared');
   render();
