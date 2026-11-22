@@ -1,0 +1,148 @@
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import {
+  SCENARIOS, runScenario, compare, estimateMs, toMarkdown, DEFAULT_TIME_MODEL,
+} from '../device/ui/scenarios.js';
+import { PROPOSED, STOCK } from '../device/ui/profile.js';
+import { parseCallouts } from '../device/ui/callouts.js';
+
+const byId = (id) => SCENARIOS.find((s) => s.id === id);
+
+test('survey 10 stations: hand-traced counts', () => {
+  const sc = byId('survey-stations');
+  const stock = runScenario(sc, STOCK);
+  assert.equal(stock.shots, 30);
+  // power-on tap, then arm + take for each of 30 shots, except the first arm shares the wake
+  assert.equal(stock.totals.taps, 1 + 30 * 2);
+  assert.equal(stock.totals.longs, 0);
+  assert.equal(stock.names, 0);
+  const prop = runScenario(sc, PROPOSED);
+  // per station: long M, '>' to Name, M, DIST to accept
+  assert.equal(prop.totals.taps, 61 + 10 * 3);
+  assert.equal(prop.totals.longs, 10);
+  assert.equal(prop.totals.holdMs, 10 * 1000);
+  assert.equal(prop.names, 10);
+  assert.deepEqual(prop.nameList[0], [2, 'S1']);
+  assert.deepEqual(prop.nameList[9], [29, 'S10']);
+  assert.equal(prop.tasks.length, 10);
+});
+
+test('tag 10 features: hand-traced first three tasks', () => {
+  const sc = byId('tag-features');
+  const stock = runScenario(sc, STOCK);
+  assert.equal(stock.totals.taps, 4 + 9 * 3);
+  assert.equal(stock.marks, 10);
+  assert.deepEqual(stock.tasks.slice(0, 2).map((t) => t.taps), [4, 3]);
+  const prop = runScenario(sc, PROPOSED);
+  assert.deepEqual(prop.tasks.slice(0, 3).map((t) => [t.taps, t.longs]), [[6, 1], [4, 1], [3, 1]]);
+  // wake 1, then per feature: arm + take + picker taps (Drip 3, Squeeze 2, Lead 1)
+  assert.equal(prop.totals.taps, 1 + 4 * 5 + 3 * 4 + 3 * 3);
+  assert.equal(prop.totals.taps, 42);
+  assert.equal(prop.totals.longs, 10);
+  assert.equal(prop.tags, 10);
+  assert.equal(prop.marks, 0);
+});
+
+test('survey with callouts: both profiles complete, proposed does more', () => {
+  const sc = byId('survey-with-callouts');
+  const stock = runScenario(sc, STOCK);
+  const prop = runScenario(sc, PROPOSED);
+  assert.equal(stock.shots, 30);
+  assert.equal(prop.shots, 30);
+  assert.equal(stock.marks, 10);
+  assert.equal(prop.names, 10);
+  assert.equal(prop.tags, 10);
+  assert.ok(prop.totals.presses > stock.totals.presses);
+});
+
+test('runs are deterministic', () => {
+  const sc = byId('survey-with-callouts');
+  assert.deepEqual(runScenario(sc, PROPOSED), runScenario(sc, PROPOSED));
+});
+
+test('custom content is used and a missing callout is a clear error', () => {
+  const sc = byId('tag-features');
+  const content = { callouts: parseCallouts('Splash').items, namePrefix: 'S', nameFirst: 1 };
+  assert.throws(() => runScenario(sc, PROPOSED, { content }), /No callout Drip/);
+});
+
+test('a callout step takes a name string and an optional via', () => {
+  const run = (step) => runScenario({ id: 't', name: 't', description: '', variants: { stock: () => [], proposed: () => [{ tap: 'dist' }, { tap: 'dist' }, step, { take: true }] } }, PROPOSED);
+  const m = run({ callout: 'Drip' });
+  assert.equal(m.tags, 1);
+  assert.equal(m.totals.longs, 1);
+  const b = run({ callout: 'Drip', via: 'both' });
+  assert.equal(b.tags, 1);
+  assert.equal(b.totals.chords, 1);
+});
+
+test('both-arrows step is counted as one chord', () => {
+  const sc = { id: 't', name: 't', description: '', variants: { stock: () => [{ tap: 'dist' }, { tapBoth: true }], proposed: () => [] } };
+  const r = runScenario(sc, STOCK);
+  assert.equal(r.totals.chords, 1);
+  assert.equal(r.totals.taps, 1);
+  assert.equal(r.totals.presses, 3);
+});
+
+test('estimateMs follows the time model', () => {
+  const r = { totals: { taps: 10, longs: 2, chords: 0, holdMs: 2000 }, shots: 5 };
+  assert.equal(estimateMs(r), 10 * 600 + 2 * 400 + 2000 + 5 * 2000, 'a long press costs its hold plus the extra');
+  assert.equal(estimateMs({ totals: { taps: 0, longs: 0, chords: 3, holdMs: 0 }, shots: 0 }), 3 * 600, 'a chord costs a tap');
+  assert.equal(estimateMs(r, { tapMs: 1000, longExtraMs: 0, shotMs: 0 }), 12000);
+  assert.deepEqual(Object.keys(DEFAULT_TIME_MODEL).sort(), ['longExtraMs', 'shotMs', 'tapMs']);
+});
+
+test('toMarkdown lists both profiles for each scenario', () => {
+  const md = toMarkdown([compare(byId('tag-features'))]);
+  assert.match(md, /\| Scenario \| Profile \|/);
+  assert.match(md, /Tag 10 features/);
+  assert.match(md, /stock-1\.1\.7/);
+  assert.match(md, /proposed/);
+  assert.match(md, /Est\. time/);
+  assert.match(md, /\| Tag 10 features \| stock-1\.1\.7 \| 31 \| 31 \| 0 \| 0 \| 0\.0 s \| \d+ s \| 10 \| 0 \| 0 \|/);
+});
+
+test('a step must have exactly one action and valid arguments', () => {
+  const run = (steps) => runScenario({ id: 't', name: 't', description: '', variants: { stock: () => steps, proposed: () => steps } }, STOCK);
+  assert.throws(() => run([{ task: 'A', pose: { az: 1 } }]), /one action/);
+  assert.throws(() => run([{ tap: 'M' }]), /Unknown button/);
+  assert.throws(() => run([{ hold: 'm' }]), /hold needs/);
+  assert.throws(() => run([{ wait: '2s' }]), /wait needs/);
+  assert.throws(() => run([{ repeat: 3 }]), /one action|repeat needs/);
+  assert.throws(() => run([{ frobnicate: 1 }]), /Unknown step/);
+});
+
+test('an unknown profile is an error', () => {
+  assert.throws(() => runScenario(byId('tag-features'), 'nope'), /Unknown profile/);
+});
+
+test('callout lookup matches whole labels', () => {
+  const sc = byId('tag-features');
+  const content = {
+    callouts: parseCallouts('Lead\nSqueeze\nDrippy\nDrip\nPool').items,
+    namePrefix: 'S', nameFirst: 1,
+  };
+  const r = runScenario(sc, PROPOSED, { content });
+  assert.equal(r.tags, 10);
+  const first = r.tasks[0];
+  // wake, arm, '>' x3 (Drip is below Drippy), M, take
+  assert.equal(first.taps, 7);
+});
+
+test('tag 10 features with the B button: same picker taps, a chord instead of a long press', () => {
+  const sc = byId('tag-features-b');
+  const stock = runScenario(sc, STOCK);
+  assert.equal(stock.totals.taps, 4 + 9 * 3);
+  const prop = runScenario(sc, PROPOSED);
+  assert.deepEqual(prop.tasks.slice(0, 3).map((t) => [t.taps, t.longs, t.chords]), [[6, 0, 1], [4, 0, 1], [3, 0, 1]]);
+  assert.equal(prop.totals.taps, 42);
+  assert.equal(prop.totals.chords, 10);
+  assert.equal(prop.totals.holdMs, 0);
+  assert.equal(prop.tags, 10);
+  assert.equal(prop.totals.longs, 0);
+  assert.equal(prop.totals.chords, 10);
+  assert.equal(prop.totals.holdMs, 0);
+  assert.equal(prop.tags, 10);
+  const viaM = runScenario(byId('tag-features'), PROPOSED);
+  assert.ok(prop.totals.holdMs < viaM.totals.holdMs, 'no hold time with B');
+});

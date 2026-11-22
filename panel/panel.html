@@ -58,6 +58,76 @@
   </div>
 </section>
 
+<section class="card" id="face" aria-label="X1 front face">
+  <h2>Front face</h2>
+  <label class="check">Firmware profile
+    <select id="selProfile">
+      <option value="stock-1.1.7">Stock 1.1.7</option>
+      <option value="proposed">Proposed</option>
+    </select>
+  </label>
+  <canvas id="lcd" class="lcd" aria-label="X1 display"></canvas>
+  <div class="keys">
+    <button data-btn="left" aria-label="Left">&lt;</button>
+    <button data-btn="dist" class="dist">DIST</button>
+    <button data-btn="right" aria-label="Right">&gt;</button>
+    <button data-btn="m">M</button>
+    <button data-btn="clr">CLR</button>
+    <button data-btn="both" title="Both arrows at once (key: B)">B</button>
+  </div>
+  <p class="hint">Keys: Space = DIST, arrows, M, Esc = CLR, B = both arrows (callout picker in the proposed profile). Hold DIST 2 s for a delayed shot. In the proposed profile hold M 1 s.</p>
+  <div class="grid3">
+    <label>Azimuth °<input id="poseAz" type="number" step="0.1"></label>
+    <label>Inclination °<input id="poseInc" type="number" step="0.1"></label>
+    <label>Distance m<input id="poseDist" type="number" step="0.01" min="0"></label>
+  </div>
+  <label class="check"><input id="chkForceErr" type="checkbox"> Force ACC ERR on shots</label>
+</section>
+
+<section class="card" id="counts">
+  <h2>Press counter</h2>
+  <dl class="kv">
+    <dt>Presses</dt><dd id="cntPresses">0</dd>
+    <dt>Taps</dt><dd id="cntTaps">0</dd>
+    <dt>Long presses</dt><dd id="cntLongs">0</dd>
+    <dt>Chords</dt><dd id="cntChords">0</dd>
+    <dt>Hold time</dt><dd id="cntHold">0.0 s</dd>
+  </dl>
+  <div class="row wrap">
+    <input id="inTask" class="grow" type="text" placeholder="Task label" aria-label="Task label">
+    <button id="btnTask" class="ghost">New task</button>
+    <button id="btnCountReset" class="ghost">Reset</button>
+    <button id="btnCountCopy" class="ghost">Copy as text</button>
+  </div>
+  <div id="taskList" class="tasks"></div>
+  <pre id="cntLog" class="log" aria-live="off"></pre>
+</section>
+
+<section class="card" id="scenarios">
+  <h2>Scenarios</h2>
+  <p class="hint">Runs each flow on stock and proposed with the current callout list. Counts are exact; times use a rough model.</p>
+  <div class="row wrap">
+    <select id="selScenario" aria-label="Scenario"></select>
+    <button id="btnRun" class="ghost">Run</button>
+    <button id="btnRunAll" class="ghost">Run all</button>
+    <button id="btnScenarioCopy" class="ghost">Copy as markdown</button>
+  </div>
+  <p id="scenarioDesc" class="hint"></p>
+  <div id="scenarioOut"></div>
+</section>
+
+<section class="card" id="calloutCard">
+  <h2>Callout menu</h2>
+  <p class="hint">One callout per line, most common first. Up to 64, names up to 12 characters.</p>
+  <textarea id="calloutText" rows="7" spellcheck="false" aria-label="Callout menu content"></textarea>
+  <div class="grid2">
+    <label>Name prefix<input id="namePrefix" type="text" maxlength="6"></label>
+    <label>First number<input id="nameFirst" type="number" min="0" step="1"></label>
+  </div>
+  <p id="calloutErrors" class="errors" role="alert"></p>
+  <div class="row"><button id="btnCalloutApply" class="ghost">Apply</button><button id="btnCalloutDefault" class="ghost">Reset to default</button></div>
+</section>
+
 <section class="card">
   <h2>Firmware</h2>
   <dl class="kv">
