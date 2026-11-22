@@ -15,6 +15,8 @@ const angDiff = (a, b) => {
   return d > 180 ? 360 - d : d;
 };
 
+// Near straight up or down, azimuth is unstable, so two shots in the same real
+// direction can fail the azimuth test. Accepted for now (the real X1's rule is unknown).
 const close = (a, b) =>
   angDiff(a.azimuth, b.azimuth) <= CLOSE_ANGLE_DEG &&
   Math.abs(a.inclination - b.inclination) <= CLOSE_ANGLE_DEG &&

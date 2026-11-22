@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { X1 } from '../device/x1.js';
 import { Instrument } from '../device/instrument.js';
 import { view } from '../device/ui/shotview.js';
+import { SHOT_CAPACITY } from '../device/memory.js';
 import { FakeClock } from './helpers.js';
 
 function make() {
@@ -84,4 +85,43 @@ test('onLive receives the live packet when the host port is open', () => {
   inst.fire({});
   assert.equal(got.length, 1);
   assert.equal(got[0][0], 0x01);
+});
+
+test('inclination and distance each break a run of close shots', () => {
+  const { inst } = make();
+  inst.pose = { az: 120, inc: 10, dist: 4.5 };
+  inst.fire({});
+  inst.fire({});
+  inst.pose = { az: 120, inc: 14, dist: 4.5 };
+  assert.equal(inst.fire({}).leg, false, 'inclination 4 degrees away');
+  inst.pose = { az: 120, inc: 14, dist: 4.5 };
+  inst.fire({});
+  inst.pose = { az: 120, inc: 14, dist: 6 };
+  assert.equal(inst.fire({}).leg, false, 'distance 1.5 m away');
+});
+
+test('shots are clean when forceErr is off', () => {
+  const { x1, inst } = make();
+  inst.fire({});
+  assert.equal(view(x1.memory.shots[0]).hasErr, false);
+});
+
+test('a scan or calibration shot after two close splays is not a leg', () => {
+  const a = make();
+  a.inst.fire({});
+  a.inst.fire({});
+  assert.equal(a.inst.fire({ scan: true }).leg, false);
+  const b = make();
+  b.inst.fire({});
+  b.inst.fire({});
+  b.x1.cali = true;
+  assert.equal(b.inst.fire({}).leg, false);
+});
+
+test('fire returns null when memory is full', () => {
+  const { x1, inst } = make();
+  for (let i = 0; i < SHOT_CAPACITY; i++) inst.fire({});
+  assert.equal(x1.memory.shots.length, SHOT_CAPACITY);
+  assert.equal(inst.fire({}), null);
+  assert.equal(x1.memory.shots.length, SHOT_CAPACITY);
 });
