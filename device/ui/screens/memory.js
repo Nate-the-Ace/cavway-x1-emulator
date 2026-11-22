@@ -1,6 +1,8 @@
 import { scene, lr } from '../scene.js';
 import { fmtAngle, fmtDist, fmtDate, fmtTime } from '../format.js';
 import { view, MARKS } from '../shotview.js';
+import { calloutLabel } from '../callouts.js';
+import { shotMenu } from './shotmenu.js';
 
 const NONE = 7;
 const LIST_ROWS = 5;
@@ -17,8 +19,14 @@ export class MemoryScreen {
   _index(ui, p) { return this._n(ui) - 1 - p; }
 
   key(ui, b, kind) {
-    if (kind !== 'tap') return;
     const n = this._n(ui);
+    if (kind === 'long') {
+      if (b === 'm' && ui.proposed && n > 0) {
+        ui.go(shotMenu({ ui, index: this._index(ui, this.cursor), parent: this }));
+      }
+      return;
+    }
+    if (kind !== 'tap') return;
     const move = (d) => { this.cursor = clamp(this.cursor + d, 0, Math.max(0, n - 1)); };
     if (b === 'left') move(-1);
     else if (b === 'right') move(1);
@@ -39,13 +47,13 @@ export class MemoryScreen {
   _list(ui, n) {
     const s = ui.settings;
     const start = Math.max(0, this.cursor - (LIST_ROWS - 1));
-    const rows = [`SHOT # ${n - this.cursor}`, 'DIST AZM°INCL°'];
+    const rows = [lr(`SHOT # ${n - this.cursor}`, ui.annotations.name(this._index(ui, this.cursor))), 'DIST AZM°INCL°'];
     const bold = [];
     for (let p = start; p < Math.min(n, start + LIST_ROWS); p++) {
       const i = this._index(ui, p);
       const v = view(ui.x1.memory.shots[i]);
       const flag = v.hasErr ? 'E' : v.isCali ? 'C' : v.isScan ? 'S' : ' ';
-      const tail = (ui.isUnsent(i) ? '*' : ' ') + (v.mark !== NONE ? '_' : ' ');
+      const tail = (ui.isUnsent(i) ? '*' : ' ') + (v.mark !== NONE || ui.annotations.tag(i) ? '_' : ' ');
       // Keep each column 5 wide: drop a decimal when the value would not fit.
       const num = (x, d) => {
         const t = x.toFixed(d);
@@ -61,7 +69,7 @@ export class MemoryScreen {
     const s = ui.settings;
     const i = this._index(ui, this.cursor);
     const v = view(ui.x1.memory.shots[i]);
-    const head = lr(`SHOT # ${n - this.cursor}`, ui.isUnsent(i) ? '*' : '');
+    const head = lr(`SHOT # ${n - this.cursor}`, `${ui.annotations.name(i)}${ui.isUnsent(i) ? ' *' : ''}`.trim());
     const foot = ['< >:Prev/Next shot', `M:Next page (${this.detail + 1}/4)`];
     let body;
     if (this.detail === 0) {
@@ -87,6 +95,7 @@ export class MemoryScreen {
         lr('absM:', `${v.absM.toFixed(2)}uT`),
         lr('Dip:', fmtAngle(v.dip, s.angleUnit)),
         lr('Mark:', MARKS[v.mark]),
+        ...(ui.annotations.tag(i) ? [lr('Tag:', calloutLabel(ui.content.callouts, ui.annotations.tag(i)))] : []),
       ];
     }
     const rows = [head, ...body];

@@ -1,6 +1,9 @@
 import { scene, lr } from '../scene.js';
 import { fmtAngle, fmtDist } from '../format.js';
 import { view, MARKS, MARK_CYCLE } from '../shotview.js';
+import { calloutLabel } from '../callouts.js';
+import { PickerScreen } from './picker.js';
+import { shotMenu } from './shotmenu.js';
 
 const NONE = 7;
 
@@ -8,6 +11,7 @@ const NONE = 7;
 export class MeasureScreen {
   constructor() {
     this.mark = NONE;
+    this.tag = 0; // callout picked before the shot (proposed profile)
     this.result = null; // { index, leg } once a shot was taken
     this.page = 0;
     this.dueAt = null; // delayed shot time
@@ -19,6 +23,7 @@ export class MeasureScreen {
     this.result = null;
     this.page = 0;
     this.dueAt = null;
+    this.tag = 0;
     ui.x1.laser = true;
   }
 
@@ -30,6 +35,8 @@ export class MeasureScreen {
     this.result = r;
     this.page = 0;
     this.mark = NONE;
+    if (this.tag) ui.annotations.setTag(r.index, this.tag);
+    this.tag = 0;
     ui.beep(view(ui.x1.memory.shots[r.index]).hasErr ? 'long' : 'short');
     if (r.leg) ui.beep('double');
   }
@@ -49,6 +56,13 @@ export class MeasureScreen {
         // Scan can use '>' as its trigger; otherwise it is the clear-unsent hotkey.
         if (s.scanEnable && s.scanTrigger === '>') ui.open('scan');
         else ui.open('clearUnsentFromMeasure');
+      } else if (b === 'm' && ui.proposed) {
+        if (armed) {
+          ui.go(new PickerScreen({
+            onPick: (u, code) => { this.tag = code; u.resume(this); },
+            onCancel: (u) => u.resume(this),
+          }));
+        } else ui.go(shotMenu({ ui, index: this.result.index, parent: this }));
       }
       return;
     }
@@ -86,6 +100,7 @@ export class MeasureScreen {
       lr('DIST', fmtDistPlaceholder(s.distUnit)),
     ];
     if (this.dueAt !== null) rows[6] = `Shot in ${Math.ceil((this.dueAt - ui.now()) / 1000)}s`;
+    else if (this.tag) rows[6] = `Tag: ${calloutLabel(ui.content.callouts, this.tag)}`;
     return scene(rows);
   }
 
@@ -107,6 +122,8 @@ export class MeasureScreen {
         '', '', '', '< >:Prev/Next page', 'M:Menu CLR:Home',
       ]);
     }
+    const tag = calloutLabel(ui.content.callouts, ui.annotations.tag(this.result.index));
+    const name = ui.annotations.name(this.result.index);
     return scene([
       lr('AZM', fmtAngle(v.azimuth, s.angleUnit)),
       lr('INCL', fmtAngle(v.inclination, s.angleUnit)),
@@ -114,6 +131,8 @@ export class MeasureScreen {
       v.mark === NONE ? '' : lr('', MARKS[v.mark]),
       lr(v.isLeg ? 'LEG' : '', v.hasErr ? 'ACC ERR' : ''),
       lr('DIST', fmtDist(v.distance, s.distUnit)),
+      tag ? `Tag: ${tag}` : '',
+      name ? `Stn: ${name}` : '',
     ]);
   }
 }
