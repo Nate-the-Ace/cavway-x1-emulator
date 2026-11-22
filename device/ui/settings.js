@@ -1,0 +1,21 @@
+// Settings the user changes in the menus. Defaults are the manual's bold values.
+export const defaultUiSettings = () => ({
+  ref: 'Rear',
+  shotDelay: 0,
+  backlight: 10,
+  beep: true,
+  idleOff: 60,
+  errDetect: true,
+  angleDiff: 0.4,
+  absLim: 1.0,
+  dipLim: 1.0,
+  scanEnable: true,
+  scanSpeed: 'Med.',
+  scanTrigger: 'DIST+M',
+  scanMinutes: 2,
+  calErrDetect: true,
+  grpLimit: 3,
+  distUnit: 'm',
+  angleUnit: 'deg',
+  forcePair: false,
+});

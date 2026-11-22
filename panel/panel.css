@@ -100,3 +100,8 @@ input.short { width: 72px; }
 .log .out { color: var(--log-out); }
 .log .note { color: var(--log-note); font-style: italic; }
 .foot { padding: 4px 2px 12px; }
+
+.lcd { display: block; width: 100%; max-width: 252px; margin: 0 auto 8px; border: 2px solid #333; border-radius: 4px; }
+.keys { display: flex; gap: 6px; justify-content: center; margin-bottom: 8px; }
+.keys button { min-width: 44px; min-height: 36px; user-select: none; touch-action: none; }
+.hint { font-size: 11px; opacity: 0.7; margin: 0 0 8px; }
