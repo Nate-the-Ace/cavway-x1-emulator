@@ -11,12 +11,12 @@ const put16 = (s, i, v) => { s[i] = v & 0xff; s[i + 1] = (v >> 8) & 0xff; };
 const angle16 = (deg) => Math.round((deg * 65535) / 360) & 0xffff;
 
 export function encodeShot({
-  time, distance, azimuth, inclination, splay = false, cali = false, flag = Flag.none,
+  time, distance, azimuth, inclination, splay = false, cali = false, scan = false, flag = Flag.none,
   absG = 1, absM = 48, dip = 60, roll = 0, noise = 0, err = null,
 }) {
   const s = new Uint8Array(64).fill(0xff);
   s[0] = 0x00;
-  s[1] = (splay ? 0x80 : 0) | ((flag & 7) << 1) | (cali ? 0 : 1);
+  s[1] = (splay ? 0x80 : 0) | (scan ? 0x40 : 0) | ((flag & 7) << 1) | (cali ? 0 : 1);
   const mm = Math.max(0, Math.min(0xffffff, Math.round(distance * 1000)));
   s[2] = (mm >> 16) & 0xff;
   s[3] = mm & 0xff;
