@@ -7,10 +7,13 @@ import { MeasureScreen } from './screens/measure.js';
 import { MemoryScreen } from './screens/memory.js';
 import { ScanScreen } from './screens/scan.js';
 import { mainMenu, clearUnsentConfirm } from './screens/menu.js';
+import { LONG_MS, STOCK, longMs, isProposed } from './profile.js';
+import { Annotations } from './annotations.js';
+import { defaultContent } from './callouts.js';
 
-export const LONG_MS = 2000;
+export { LONG_MS };
 
-// Screen factories by name. Later tasks add their screens here.
+// Screen factories by name.
 export const SCREENS = {
   home: () => new HomeScreen(),
   measure: () => new MeasureScreen(),
@@ -21,10 +24,12 @@ export const SCREENS = {
 };
 
 export class Ui {
-  constructor({ x1, instrument = null, profile = 'stock-1.1.7' }) {
+  constructor({ x1, instrument = null, profile = STOCK, content = null }) {
     this.x1 = x1;
     this.instrument = instrument ?? new Instrument(x1);
     this.profile = profile;
+    this.content = content ?? defaultContent(); // { callouts, namePrefix, nameFirst }
+    this.annotations = new Annotations();
     this.settings = defaultUiSettings();
     this.on = false;
     this.screen = null;
@@ -32,9 +37,18 @@ export class Ui {
     this.beeps = [];
     this.sent = new Set(); // shot indices already transferred
     this.lastInput = x1.now();
+    this.onInput = null; // ({ t, button, kind, heldMs, screen }) => void
   }
 
   now() { return this.x1.now(); }
+
+  get proposed() { return isProposed(this.profile); }
+
+  setProfile(profile) {
+    this.profile = profile;
+    this.powerOff();
+    this.annotations.clear();
+  }
 
   // ---- input ----------------------------------------------------------------
   press(b) {
@@ -44,7 +58,10 @@ export class Ui {
     this.down.set(b, entry);
     if (!this.on) {
       entry.fired = true; // nothing to do on release
-      if (b === 'dist') this.powerOn();
+      if (b === 'dist') {
+        this._report('dist', 'tap', 0, 'off');
+        this.powerOn();
+      }
     }
   }
 
@@ -53,7 +70,15 @@ export class Ui {
     this.down.delete(b);
     if (!e || e.fired || !this.on) return;
     this.lastInput = this.now();
-    this._dispatch(b, 'tap');
+    // An arrow released while the other arrow is still down: one left+right tap.
+    const other = b === 'left' ? 'right' : b === 'right' ? 'left' : null;
+    const p = other ? this.down.get(other) : null;
+    if (p && !p.fired) {
+      p.fired = true;
+      this._dispatch('left+right', 'tap', this.now() - Math.max(e.at, p.at));
+      return;
+    }
+    this._dispatch(b, 'tap', this.now() - e.at);
   }
 
   // Call about every 100 ms: long presses, chords, idle power-off, screen timers.
@@ -62,18 +87,25 @@ export class Ui {
     const t = this.now();
     const d = this.down.get('dist');
     const m = this.down.get('m');
+    const l = this.down.get('left');
+    const r = this.down.get('right');
     if (d && m && !d.fired && !m.fired && t - Math.max(d.at, m.at) >= LONG_MS) {
       d.fired = true;
       m.fired = true;
-      this._dispatch('dist+m', 'chord');
+      this._dispatch('dist+m', 'chord', t - Math.max(d.at, m.at));
+    }
+    if (l && r && !l.fired && !r.fired && t - Math.max(l.at, r.at) >= LONG_MS) {
+      l.fired = true;
+      r.fired = true;
+      this._dispatch('left+right', 'long', t - Math.max(l.at, r.at));
     }
     for (const [b, e] of this.down) {
-      // While its chord partner is held and unfired, DIST or M may still become a chord.
-      const partner = b === 'dist' ? m : b === 'm' ? d : null;
+      // While its chord partner is held and unfired, a button may still become part of a chord.
+      const partner = b === 'dist' ? m : b === 'm' ? d : b === 'left' ? r : b === 'right' ? l : null;
       if (partner && !partner.fired) continue;
-      if (this.on && !e.fired && t - e.at >= LONG_MS) {
+      if (this.on && !e.fired && t - e.at >= longMs(this.profile, b)) {
         e.fired = true;
-        this._dispatch(b, 'long');
+        this._dispatch(b, 'long', t - e.at);
       }
     }
     if (!this.on) return;
@@ -82,8 +114,13 @@ export class Ui {
     this.screen?.tick?.(this, t);
   }
 
-  _dispatch(b, kind) {
-    if (b === 'clr' && kind === 'long') { this.powerOff(); return; }
+  _report(button, kind, heldMs, screen) {
+    this.onInput?.({ t: this.now(), button, kind, heldMs, screen });
+  }
+
+  _dispatch(b, kind, heldMs = 0) {
+    this._report(b, kind, heldMs, this.screen?.constructor.name ?? 'off');
+    if (b === 'clr' && kind === 'long' && !this.screen?.handlesLongClr) { this.powerOff(); return; }
     this.screen?.key?.(this, b, kind);
   }
 
@@ -104,7 +141,6 @@ export class Ui {
 
   // ---- screens --------------------------------------------------------------
   // open: a fresh screen (its enter() runs). resume: go back to a live one.
-  // Screens not yet registered are ignored.
   open(name) {
     const make = SCREENS[name];
     if (!make) throw new Error(`Unknown screen: ${name}`);
@@ -113,10 +149,11 @@ export class Ui {
   go(screen) { this.screen = screen; screen.enter?.(this); }
   resume(screen) { this.screen = screen; }
 
-  // Back to factory state for what the Ui keeps: settings and transfer flags.
+  // Back to factory state for what the Ui keeps: settings, transfer flags, annotations.
   resetState() {
     Object.assign(this.settings, defaultUiSettings());
     this.sent.clear();
+    this.annotations.clear();
   }
 
   scene() {
